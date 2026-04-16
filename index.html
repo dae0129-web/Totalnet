@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="資產追蹤">
+<title>總資產追蹤</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+:root {
+–gold: #d4af37;
+–gold-dim: rgba(212,175,55,0.15);
+–gold-border: rgba(212,175,55,0.25);
+–bg: #0a0a12;
+–surface: rgba(255,255,255,0.04);
+–border: rgba(255,255,255,0.08);
+–text: #e8e8f0;
+–muted: #6b6b80;
+–up: #4caf82;
+–down: #e05c5c;
+}
+
+html, body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘DM Sans’, ‘Noto Sans TC’, sans-serif;
+min-height: 100vh;
+-webkit-font-smoothing: antialiased;
+}
+
+.app {
+max-width: 480px;
+margin: 0 auto;
+padding-bottom: 100px;
+min-height: 100vh;
+background: linear-gradient(160deg, #0a0a12 0%, #11111e 60%, #0d0d1a 100%);
+}
+
+/* Header */
+.header { padding: 48px 24px 0; }
+.header .eyebrow { color: var(–muted); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+.header h1 { font-family: ‘Playfair Display’, serif; font-size: 28px; font-weight: 700; color: #f0ecd8; letter-spacing: -0.5px; margin-top: 4px; }
+
+/* Stats */
+.stats { display: flex; gap: 12px; padding: 20px 24px 0; }
+.stat-card { flex: 1; border-radius: 16px; padding: 14px 16px; }
+.stat-card.primary { background: var(–gold-dim); border: 1px solid var(–gold-border); }
+.stat-card.secondary { background: var(–surface); border: 1px solid var(–border); }
+.stat-label { font-size: 10px; color: var(–muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-value { font-family: ‘Playfair Display’, serif; font-size: 22px; color: var(–gold); margin-top: 6px; font-weight: 700; word-break: break-all; }
+.stat-card.secondary .stat-value { color: #c8c0e0; }
+.stat-sub { font-size: 12px; margin-top: 4px; }
+.up { color: var(–up); }
+.down { color: var(–down); }
+.neutral { color: var(–muted); }
+
+/* Tabs */
+.tabs { display: flex; margin: 20px 24px 0; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 4px; }
+.tab { flex: 1; padding: 10px 0; border-radius: 9px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; background: transparent; color: var(–muted); transition: all 0.2s; }
+.tab.active { background: var(–gold-dim); color: var(–gold); }
+
+/* Chart */
+.chart-wrap { padding: 20px 12px 0; display: none; }
+.chart-wrap.visible { display: block; }
+.chart-empty { text-align: center; padding: 48px 24px; color: var(–muted); }
+.chart-empty .icon { font-size: 40px; }
+.chart-empty p { margin-top: 12px; line-height: 1.6; }
+
+/* Log */
+.log-wrap { padding: 16px 24px 0; display: none; }
+.log-wrap.visible { display: block; }
+.log-empty { text-align: center; padding: 48px 0; color: var(–muted); }
+.entry { background: var(–surface); border: 1px solid var(–border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.entry-left .date { font-size: 11px; color: var(–muted); }
+.entry-left .amount { font-family: ‘Playfair Display’, serif; font-size: 20px; color: var(–gold); margin-top: 3px; }
+.entry-left .note { font-size: 11px; color: #8888a0; margin-top: 4px; }
+.entry-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-edit { background: var(–gold-dim); border: none; border-radius: 8px; color: var(–gold); padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.btn-del { background: rgba(224,92,92,0.1); border: none; border-radius: 8px; color: var(–down); padding: 7px 12px; font-size: 13px; cursor: pointer; }
+
+/* FAB */
+.fab { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #d4af37, #b8941f); border: none; border-radius: 50%; width: 64px; height: 64px; font-size: 28px; color: #0a0a12; cursor: pointer; box-shadow: 0 6px 30px rgba(212,175,55,0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; z-index: 50; }
+
+/* Overlay */
+.overlay { position: fixed; inset: 0; background: rgba(5,5,12,0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.overlay.show { opacity: 1; pointer-events: all; }
+.sheet { width: 100%; max-width: 480px; margin: 0 auto; background: linear-gradient(180deg,#18182e,#12121f); border-radius: 24px 24px 0 0; border: 1px solid var(–gold-border); padding: 28px 24px 48px; transform: translateY(30px); transition: transform 0.3s ease; }
+.overlay.show .sheet { transform: translateY(0); }
+.sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.sheet-title { font-family: ‘Playfair Display’, serif; font-size: 20px; color: #f0ecd8; }
+.btn-close { background: rgba(255,255,255,0.06); border: none; border-radius: 50%; width: 34px; height: 34px; color: #888; cursor: pointer; font-size: 16px; }
+
+.field-label { font-size: 11px; color: var(–muted); letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.field-wrap { margin-bottom: 16px; }
+.input-base { display: block; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(–border); border-radius: 12px; padding: 13px 16px; color: var(–text); font-size: 15px; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; outline: none; -webkit-appearance: none; appearance: none; }
+.input-base:focus { border-color: var(–gold-border); }
+.amount-wrap { position: relative; }
+.currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(–gold); font-size: 16px; }
+.input-amount { padding-left: 36px; color: var(–gold); font-family: ‘Playfair Display’, serif; font-size: 22px; border-color: var(–gold-border); }
+.btn-submit { width: 100%; padding: 16px; border-radius: 14px; border: none; background: linear-gradient(135deg, #d4af37, #b8941f); color: #0a0a12; font-size: 16px; font-weight: 600; cursor: pointer; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; margin-top: 8px; }
+
+/* Confirm */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(5,5,12,0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.confirm-overlay.show { opacity: 1; pointer-events: all; }
+.confirm-box { background: #16162a; border: 1px solid rgba(224,92,92,0.3); border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; }
+.confirm-icon { font-size: 36px; }
+.confirm-title { font-size: 16px; color: var(–text); margin: 12px 0 6px; font-weight: 500; }
+.confirm-sub { font-size: 13px; color: var(–muted); margin-bottom: 24px; }
+.confirm-btns { display: flex; gap: 10px; }
+.btn-cancel { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(–border); background: transparent; color: #8888a0; cursor: pointer; font-size: 14px; }
+.btn-confirm-del { flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(–down); color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; }
+
+/* Toast */
+.toast { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(10px); background: rgba(212,175,55,0.95); color: #0a0a12; padding: 10px 22px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 300; white-space: nowrap; opacity: 0; transition: all 0.25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+input[type=“number”]::-webkit-inner-spin-button,
+input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <p class="eyebrow">財富追蹤</p>
+    <h1>Total Assets</h1>
+  </div>
+
+  <!-- Stats -->
+
+  <div class="stats">
+    <div class="stat-card primary">
+      <div class="stat-label">最新總資產</div>
+      <div class="stat-value" id="statLatest">—</div>
+      <div class="stat-sub" id="statChange"></div>
+    </div>
+    <div class="stat-card secondary">
+      <div class="stat-label">歷史最高</div>
+      <div class="stat-value" id="statATH">—</div>
+      <div class="stat-sub neutral" id="statCount"></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('chart')">📈 走勢圖</button>
+    <button class="tab" onclick="switchTab('log')">📋 紀錄</button>
+  </div>
+
+  <!-- Chart -->
+
+  <div class="chart-wrap visible" id="chartWrap">
+    <div class="chart-empty" id="chartEmpty" style="display:none">
+      <div class="icon">📊</div>
+      <p>至少輸入 2 筆資料<br>才能顯示走勢圖</p>
+    </div>
+    <canvas id="myChart" height="220"></canvas>
+  </div>
+
+  <!-- Log -->
+
+  <div class="log-wrap" id="logWrap">
+    <div class="log-empty" id="logEmpty" style="display:none">
+      <div class="icon">📝</div>
+      <p style="margin-top:12px">尚無紀錄，點下方 + 開始</p>
+    </div>
+    <div id="logList"></div>
+  </div>
+</div>
+
+<!-- FAB -->
+
+<button class="fab" id="fabBtn" onclick="openForm()">+</button>
+
+<!-- Form Sheet -->
+
+<div class="overlay" id="formOverlay" onclick="overlayClose(event)">
+  <div class="sheet">
+    <div class="sheet-header">
+      <span class="sheet-title" id="formTitle">登錄資產</span>
+      <button class="btn-close" onclick="closeForm()">✕</button>
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">日期</label>
+      <input type="date" id="inputDate" class="input-base">
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">總資產金額（新台幣）</label>
+      <div class="amount-wrap">
+        <span class="currency-symbol">$</span>
+        <input type="number" id="inputAmount" class="input-base input-amount" placeholder="0" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">備註（選填）</label>
+      <input type="text" id="inputNote" class="input-base" placeholder="e.g. 加入定存">
+    </div>
+    <button class="btn-submit" onclick="submitForm()">儲存紀錄</button>
+  </div>
+</div>
+
+<!-- Confirm Delete -->
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑</div>
+    <div class="confirm-title">確認刪除？</div>
+    <div class="confirm-sub">此操作無法復原</div>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn-confirm-del" onclick="doDelete()">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'tw-wealth-tracker-v1';
+let entries = [];
+let editId = null;
+let deleteId = null;
+let chartInstance = null;
+let activeTab = 'chart';
+
+// ── Utils ──────────────────────────────────────────────
+function loadData() {
+  try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { entries = []; }
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function fmtAmt(v) {
+  return '$\u00a0' + Math.round(v).toLocaleString('zh-TW');
+}
+function fmtAmtShort(v) {
+  if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(2) + 'M';
+  if (v >= 1_000) return '$' + (v / 1_000).toFixed(1) + 'K';
+  return '$' + Math.round(v).toLocaleString('zh-TW');
+}
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── Stats ──────────────────────────────────────────────
+function renderStats() {
+  const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length - 1];
+  const prev   = sorted[sorted.length - 2];
+
+  document.getElementById('statLatest').textContent = latest ? fmtAmtShort(latest.amount) : '—';
+  document.getElementById('statCount').textContent = entries.length + ' 筆紀錄';
+
+  if (latest && prev) {
+    const diff = latest.amount - prev.amount;
+    const pct  = (diff / prev.amount * 100).toFixed(2);
+    const el   = document.getElementById('statChange');
+    el.textContent = (diff >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '%';
+    el.className = 'stat-sub ' + (diff >= 0 ? 'up' : 'down');
+  } else {
+    document.getElementById('statChange').textContent = '';
+  }
+
+  if (entries.length) {
+    const ath = Math.max(...entries.map(e => e.amount));
+    document.getElementById('statATH').textContent = fmtAmtShort(ath);
+  } else {
+    document.getElementById('statATH').textContent = '—';
+  }
+}
+
+// ── Chart ──────────────────────────────────────────────
+function renderChart() {
+  const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+  const canvas = document.getElementById('myChart');
+  const empty  = document.getElementById('chartEmpty');
+
+  if (sorted.length < 2) {
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    return;
+  }
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+
+  const labels = sorted.map(e => fmtDate(e.date));
+  const data   = sorted.map(e => Math.round(e.amount));
+  const amounts = data;
+  const minA = Math.min(...amounts);
+  const maxA = Math.max(...amounts);
+  const pad  = (maxA - minA) * 0.18 || maxA * 0.1 || 1000;
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: '#d4af37',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#d4af37',
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: '#d4af37',
+        pointHoverBorderColor: 'rgba(212,175,55,0.35)',
+        pointHoverBorderWidth: 8,
+        tension: 0.3,
+        fill: true,
+        backgroundColor: (ctx) => {
+          const grad = ctx.chart.ctx.createLinearGradient(0, 0, 0, 220);
+          grad.addColorStop(0, 'rgba(212,175,55,0.18)');
+          grad.addColorStop(1, 'rgba(212,175,55,0)');
+          return grad;
+        },
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,18,0.95)',
+          borderColor: 'rgba(212,175,55,0.35)',
+          borderWidth: 1,
+          titleColor: '#a0a0b0',
+          bodyColor: '#d4af37',
+          bodyFont: { family: "'Playfair Display', serif", size: 18 },
+          titleFont: { size: 12 },
+          padding: 12,
+          callbacks: {
+            label: ctx => '$ ' + ctx.parsed.y.toLocaleString('zh-TW') + ' 元'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: { color: '#6b6b80', font: { size: 11 } },
+        },
+        y: {
+          min: Math.max(0, minA - pad),
+          max: maxA + pad,
+          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          ticks: {
+            color: '#6b6b80', font: { size: 10 },
+            callback: v => fmtAmtShort(v)
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Log ───────────────────────────────────────────────
+function renderLog() {
+  const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
+  const list   = document.getElementById('logList');
+  const empty  = document.getElementById('logEmpty');
+
+  if (!sorted.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+  empty.style.display = 'none';
+
+  list.innerHTML = sorted.map(e => `
+    <div class="entry">
+      <div class="entry-left">
+        <div class="date">${e.date}</div>
+        <div class="amount">${fmtAmt(e.amount)} 元</div>
+        ${e.note ? `<div class="note">${e.note}</div>` : ''}
+      </div>
+      <div class="entry-actions">
+        <button class="btn-edit" onclick="openEdit('${e.id}')">✏️</button>
+        <button class="btn-del"  onclick="askDelete('${e.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderStats();
+  renderChart();
+  renderLog();
+}
+
+// ── Tabs ──────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', (i === 0) === (tab === 'chart'));
+  });
+  document.getElementById('chartWrap').classList.toggle('visible', tab === 'chart');
+  document.getElementById('logWrap').classList.toggle('visible', tab === 'log');
+}
+
+// ── Form ──────────────────────────────────────────────
+function openForm() {
+  editId = null;
+  document.getElementById('formTitle').textContent = '登錄資產';
+  document.getElementById('inputDate').value   = today();
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputNote').value   = '';
+  document.querySelector('.btn-submit').textContent = '儲存紀錄';
+  document.getElementById('formOverlay').classList.add('show');
+}
+
+function openEdit(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  editId = id;
+  document.getElementById('formTitle').textContent = '編輯紀錄';
+  document.getElementById('inputDate').value   = e.date;
+  document.getElementById('inputAmount').value = e.amount;
+  document.getElementById('inputNote').value   = e.note || '';
+  document.querySelector('.btn-submit').textContent = '更新';
+  document.getElementById('formOverlay').classList.add('show');
+  if (activeTab !== 'chart') switchTab('chart');
+}
+
+function closeForm() {
+  document.getElementById('formOverlay').classList.remove('show');
+  editId = null;
+}
+
+function overlayClose(e) {
+  if (e.target === document.getElementById('formOverlay')) closeForm();
+}
+
+function submitForm() {
+  const rawAmount = document.getElementById('inputAmount').value.trim();
+  const amount    = Math.round(parseFloat(rawAmount));
+  const date      = document.getElementById('inputDate').value;
+  const note      = document.getElementById('inputNote').value.trim();
+
+  if (!rawAmount || isNaN(amount) || amount < 0) { showToast('請輸入有效金額'); return; }
+  if (!date) { showToast('請選擇日期'); return; }
+
+  if (editId) {
+    entries = entries.map(e => e.id === editId ? { ...e, amount, date, note } : e);
+    showToast('已更新紀錄 ✓');
+  } else {
+    const existing = entries.find(e => e.date === date);
+    if (existing) {
+      entries = entries.map(e => e.date === date ? { ...e, amount, note } : e);
+      showToast('已更新當日紀錄 ✓');
+    } else {
+      entries.push({ id: Date.now().toString(), date, amount, note });
+      showToast('已記錄 ✓');
+    }
+  }
+
+  saveData();
+  render();
+  closeForm();
+}
+
+// ── Delete ────────────────────────────────────────────
+function askDelete(id) {
+  deleteId = id;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  deleteId = null;
+}
+function doDelete() {
+  entries = entries.filter(e => e.id !== deleteId);
+  saveData();
+  render();
+  closeConfirm();
+  showToast('已刪除');
+}
+
+// ── Init ──────────────────────────────────────────────
+loadData();
+render();
+</script>
+
+</body>
+</html>
