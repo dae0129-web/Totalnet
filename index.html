@@ -10,26 +10,13 @@
 <title>總資產追蹤</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
-:root {
-–gold: #d4af37;
-–gold-dim: rgba(212,175,55,0.15);
-–gold-border: rgba(212,175,55,0.25);
-–bg: #0a0a12;
-–surface: rgba(255,255,255,0.04);
-–border: rgba(255,255,255,0.08);
-–text: #e8e8f0;
-–muted: #6b6b80;
-–up: #4caf82;
-–down: #e05c5c;
-}
-
 html, body {
-background: var(–bg);
-color: var(–text);
+background: #0a0a12;
+color: #e8e8f0;
 font-family: ‘DM Sans’, ‘Noto Sans TC’, sans-serif;
 min-height: 100vh;
 -webkit-font-smoothing: antialiased;
@@ -43,81 +30,72 @@ min-height: 100vh;
 background: linear-gradient(160deg, #0a0a12 0%, #11111e 60%, #0d0d1a 100%);
 }
 
-/* Header */
 .header { padding: 48px 24px 0; }
-.header .eyebrow { color: var(–muted); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+.header .eyebrow { color: #6b6b80; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
 .header h1 { font-family: ‘Playfair Display’, serif; font-size: 28px; font-weight: 700; color: #f0ecd8; letter-spacing: -0.5px; margin-top: 4px; }
 
-/* Stats */
 .stats { display: flex; gap: 12px; padding: 20px 24px 0; }
 .stat-card { flex: 1; border-radius: 16px; padding: 14px 16px; }
-.stat-card.primary { background: var(–gold-dim); border: 1px solid var(–gold-border); }
-.stat-card.secondary { background: var(–surface); border: 1px solid var(–border); }
-.stat-label { font-size: 10px; color: var(–muted); letter-spacing: 1.5px; text-transform: uppercase; }
-.stat-value { font-family: ‘Playfair Display’, serif; font-size: 22px; color: var(–gold); margin-top: 6px; font-weight: 700; word-break: break-all; }
+.stat-card.primary { background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.25); }
+.stat-card.secondary { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.stat-label { font-size: 10px; color: #6b6b80; letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-value { font-family: ‘Playfair Display’, serif; font-size: 22px; color: #d4af37; margin-top: 6px; font-weight: 700; word-break: break-all; }
 .stat-card.secondary .stat-value { color: #c8c0e0; }
 .stat-sub { font-size: 12px; margin-top: 4px; }
-.up { color: var(–up); }
-.down { color: var(–down); }
-.neutral { color: var(–muted); }
+.up { color: #4caf82; }
+.down { color: #e05c5c; }
+.neutral { color: #6b6b80; }
 
-/* Tabs */
 .tabs { display: flex; margin: 20px 24px 0; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 4px; }
-.tab { flex: 1; padding: 10px 0; border-radius: 9px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; background: transparent; color: var(–muted); transition: all 0.2s; }
-.tab.active { background: var(–gold-dim); color: var(–gold); }
+.tab { flex: 1; padding: 10px 0; border-radius: 9px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; background: transparent; color: #6b6b80; transition: all 0.2s; }
+.tab.active { background: rgba(212,175,55,0.15); color: #d4af37; }
 
-/* Chart */
 .chart-wrap { padding: 20px 12px 0; display: none; }
 .chart-wrap.visible { display: block; }
-.chart-empty { text-align: center; padding: 48px 24px; color: var(–muted); }
+.chart-empty { text-align: center; padding: 48px 24px; color: #6b6b80; }
 .chart-empty .icon { font-size: 40px; }
 .chart-empty p { margin-top: 12px; line-height: 1.6; }
 
-/* Log */
 .log-wrap { padding: 16px 24px 0; display: none; }
 .log-wrap.visible { display: block; }
-.log-empty { text-align: center; padding: 48px 0; color: var(–muted); }
-.entry { background: var(–surface); border: 1px solid var(–border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-.entry-left .date { font-size: 11px; color: var(–muted); }
-.entry-left .amount { font-family: ‘Playfair Display’, serif; font-size: 20px; color: var(–gold); margin-top: 3px; }
+.log-empty { text-align: center; padding: 48px 0; color: #6b6b80; }
+.entry { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.entry-left .date { font-size: 11px; color: #6b6b80; }
+.entry-left .amount { font-family: ‘Playfair Display’, serif; font-size: 20px; color: #d4af37; margin-top: 3px; }
 .entry-left .note { font-size: 11px; color: #8888a0; margin-top: 4px; }
 .entry-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.btn-edit { background: var(–gold-dim); border: none; border-radius: 8px; color: var(–gold); padding: 7px 12px; font-size: 13px; cursor: pointer; }
-.btn-del { background: rgba(224,92,92,0.1); border: none; border-radius: 8px; color: var(–down); padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.btn-edit { background: rgba(212,175,55,0.15); border: none; border-radius: 8px; color: #d4af37; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.btn-del { background: rgba(224,92,92,0.1); border: none; border-radius: 8px; color: #e05c5c; padding: 7px 12px; font-size: 13px; cursor: pointer; }
 
-/* FAB */
 .fab { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #d4af37, #b8941f); border: none; border-radius: 50%; width: 64px; height: 64px; font-size: 28px; color: #0a0a12; cursor: pointer; box-shadow: 0 6px 30px rgba(212,175,55,0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; z-index: 50; }
 
-/* Overlay */
 .overlay { position: fixed; inset: 0; background: rgba(5,5,12,0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
 .overlay.show { opacity: 1; pointer-events: all; }
-.sheet { width: 100%; max-width: 480px; margin: 0 auto; background: linear-gradient(180deg,#18182e,#12121f); border-radius: 24px 24px 0 0; border: 1px solid var(–gold-border); padding: 28px 24px 48px; transform: translateY(30px); transition: transform 0.3s ease; }
+.sheet { width: 100%; max-width: 480px; margin: 0 auto; background: linear-gradient(180deg,#18182e,#12121f); border-radius: 24px 24px 0 0; border: 1px solid rgba(212,175,55,0.25); padding: 28px 24px 48px; transform: translateY(30px); transition: transform 0.3s ease; }
 .overlay.show .sheet { transform: translateY(0); }
 .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
 .sheet-title { font-family: ‘Playfair Display’, serif; font-size: 20px; color: #f0ecd8; }
 .btn-close { background: rgba(255,255,255,0.06); border: none; border-radius: 50%; width: 34px; height: 34px; color: #888; cursor: pointer; font-size: 16px; }
 
-.field-label { font-size: 11px; color: var(–muted); letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.field-label { font-size: 11px; color: #6b6b80; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
 .field-wrap { margin-bottom: 16px; }
-.input-base { display: block; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(–border); border-radius: 12px; padding: 13px 16px; color: var(–text); font-size: 15px; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; outline: none; -webkit-appearance: none; appearance: none; }
-.input-base:focus { border-color: var(–gold-border); }
+.input-base { display: block; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 13px 16px; color: #e8e8f0; font-size: 15px; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; outline: none; -webkit-appearance: none; appearance: none; }
+.input-base:focus { border-color: rgba(212,175,55,0.25); }
 .amount-wrap { position: relative; }
-.currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(–gold); font-size: 16px; }
-.input-amount { padding-left: 36px; color: var(–gold); font-family: ‘Playfair Display’, serif; font-size: 22px; border-color: var(–gold-border); }
+.currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #d4af37; font-size: 16px; }
+.input-amount { padding-left: 36px; color: #d4af37; font-family: ‘Playfair Display’, serif; font-size: 22px; border-color: rgba(212,175,55,0.25); }
 .btn-submit { width: 100%; padding: 16px; border-radius: 14px; border: none; background: linear-gradient(135deg, #d4af37, #b8941f); color: #0a0a12; font-size: 16px; font-weight: 600; cursor: pointer; font-family: ‘DM Sans’,‘Noto Sans TC’,sans-serif; margin-top: 8px; }
 
-/* Confirm */
 .confirm-overlay { position: fixed; inset: 0; background: rgba(5,5,12,0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .confirm-overlay.show { opacity: 1; pointer-events: all; }
 .confirm-box { background: #16162a; border: 1px solid rgba(224,92,92,0.3); border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; }
 .confirm-icon { font-size: 36px; }
-.confirm-title { font-size: 16px; color: var(–text); margin: 12px 0 6px; font-weight: 500; }
-.confirm-sub { font-size: 13px; color: var(–muted); margin-bottom: 24px; }
+.confirm-title { font-size: 16px; color: #e8e8f0; margin: 12px 0 6px; font-weight: 500; }
+.confirm-sub { font-size: 13px; color: #6b6b80; margin-bottom: 24px; }
 .confirm-btns { display: flex; gap: 10px; }
-.btn-cancel { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(–border); background: transparent; color: #8888a0; cursor: pointer; font-size: 14px; }
-.btn-confirm-del { flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(–down); color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-cancel { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #8888a0; cursor: pointer; font-size: 14px; }
+.btn-confirm-del { flex: 1; padding: 12px; border-radius: 12px; border: none; background: #e05c5c; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; }
 
-/* Toast */
 .toast { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(10px); background: rgba(212,175,55,0.95); color: #0a0a12; padding: 10px 22px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 300; white-space: nowrap; opacity: 0; transition: all 0.25s; pointer-events: none; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -128,13 +106,10 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
 </head>
 <body>
 <div class="app">
-  <!-- Header -->
   <div class="header">
     <p class="eyebrow">財富追蹤</p>
     <h1>Total Assets</h1>
   </div>
-
-  <!-- Stats -->
 
   <div class="stats">
     <div class="stat-card primary">
@@ -149,14 +124,10 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
     </div>
   </div>
 
-  <!-- Tabs -->
-
   <div class="tabs">
     <button class="tab active" onclick="switchTab('chart')">📈 走勢圖</button>
     <button class="tab" onclick="switchTab('log')">📋 紀錄</button>
   </div>
-
-  <!-- Chart -->
 
   <div class="chart-wrap visible" id="chartWrap">
     <div class="chart-empty" id="chartEmpty" style="display:none">
@@ -165,8 +136,6 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
     </div>
     <canvas id="myChart" height="220"></canvas>
   </div>
-
-  <!-- Log -->
 
   <div class="log-wrap" id="logWrap">
     <div class="log-empty" id="logEmpty" style="display:none">
@@ -177,11 +146,7 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
   </div>
 </div>
 
-<!-- FAB -->
-
-<button class="fab" id="fabBtn" onclick="openForm()">+</button>
-
-<!-- Form Sheet -->
+<button class="fab" onclick="openForm()">+</button>
 
 <div class="overlay" id="formOverlay" onclick="overlayClose(event)">
   <div class="sheet">
@@ -208,8 +173,6 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
   </div>
 </div>
 
-<!-- Confirm Delete -->
-
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <div class="confirm-icon">🗑</div>
@@ -222,8 +185,6 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
   </div>
 </div>
 
-<!-- Toast -->
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -234,7 +195,6 @@ let deleteId = null;
 let chartInstance = null;
 let activeTab = 'chart';
 
-// ── Utils ──────────────────────────────────────────────
 function loadData() {
   try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { entries = []; }
@@ -246,18 +206,17 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 function fmtAmt(v) {
-  return '$\u00a0' + Math.round(v).toLocaleString('zh-TW');
+  return '$ ' + Math.round(v).toLocaleString('zh-TW');
 }
 function fmtAmtShort(v) {
-  if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(2) + 'M';
-  if (v >= 1_000) return '$' + (v / 1_000).toFixed(1) + 'K';
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(2) + 'M';
+  if (v >= 1000) return '$' + (v / 1000).toFixed(1) + 'K';
   return '$' + Math.round(v).toLocaleString('zh-TW');
 }
 function fmtDate(s) {
   const d = new Date(s + 'T00:00:00');
-  return `${d.getMonth()+1}/${d.getDate()}`;
+  return (d.getMonth()+1) + '/' + d.getDate();
 }
-
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -265,15 +224,12 @@ function showToast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-// ── Stats ──────────────────────────────────────────────
 function renderStats() {
   const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
   const latest = sorted[sorted.length - 1];
   const prev   = sorted[sorted.length - 2];
-
   document.getElementById('statLatest').textContent = latest ? fmtAmtShort(latest.amount) : '—';
   document.getElementById('statCount').textContent = entries.length + ' 筆紀錄';
-
   if (latest && prev) {
     const diff = latest.amount - prev.amount;
     const pct  = (diff / prev.amount * 100).toFixed(2);
@@ -283,7 +239,6 @@ function renderStats() {
   } else {
     document.getElementById('statChange').textContent = '';
   }
-
   if (entries.length) {
     const ath = Math.max(...entries.map(e => e.amount));
     document.getElementById('statATH').textContent = fmtAmtShort(ath);
@@ -292,12 +247,10 @@ function renderStats() {
   }
 }
 
-// ── Chart ──────────────────────────────────────────────
 function renderChart() {
   const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
   const canvas = document.getElementById('myChart');
   const empty  = document.getElementById('chartEmpty');
-
   if (sorted.length < 2) {
     canvas.style.display = 'none';
     empty.style.display = 'block';
@@ -306,16 +259,12 @@ function renderChart() {
   }
   canvas.style.display = 'block';
   empty.style.display = 'none';
-
   const labels = sorted.map(e => fmtDate(e.date));
   const data   = sorted.map(e => Math.round(e.amount));
-  const amounts = data;
-  const minA = Math.min(...amounts);
-  const maxA = Math.max(...amounts);
+  const minA = Math.min(...data);
+  const maxA = Math.max(...data);
   const pad  = (maxA - minA) * 0.18 || maxA * 0.1 || 1000;
-
   if (chartInstance) chartInstance.destroy();
-
   chartInstance = new Chart(canvas, {
     type: 'line',
     data: {
@@ -350,7 +299,7 @@ function renderChart() {
           borderWidth: 1,
           titleColor: '#a0a0b0',
           bodyColor: '#d4af37',
-          bodyFont: { family: "'Playfair Display', serif", size: 18 },
+          bodyFont: { family: 'Playfair Display, serif', size: 18 },
           titleFont: { size: 12 },
           padding: 12,
           callbacks: {
@@ -360,54 +309,43 @@ function renderChart() {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+          grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: { color: '#6b6b80', font: { size: 11 } },
         },
         y: {
           min: Math.max(0, minA - pad),
           max: maxA + pad,
-          grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-          ticks: {
-            color: '#6b6b80', font: { size: 10 },
-            callback: v => fmtAmtShort(v)
-          }
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#6b6b80', font: { size: 10 }, callback: v => Math.round(v).toLocaleString('zh-TW') }
         }
       }
     }
   });
 }
 
-// ── Log ───────────────────────────────────────────────
 function renderLog() {
   const sorted = [...entries].sort((a,b) => b.date.localeCompare(a.date));
   const list   = document.getElementById('logList');
   const empty  = document.getElementById('logEmpty');
-
   if (!sorted.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
   empty.style.display = 'none';
-
   list.innerHTML = sorted.map(e => `
     <div class="entry">
       <div class="entry-left">
         <div class="date">${e.date}</div>
         <div class="amount">${fmtAmt(e.amount)} 元</div>
-        ${e.note ? `<div class="note">${e.note}</div>` : ''}
+        ${e.note ? '<div class="note">' + e.note + '</div>' : ''}
       </div>
       <div class="entry-actions">
         <button class="btn-edit" onclick="openEdit('${e.id}')">✏️</button>
-        <button class="btn-del"  onclick="askDelete('${e.id}')">🗑</button>
+        <button class="btn-del" onclick="askDelete('${e.id}')">🗑</button>
       </div>
     </div>
   `).join('');
 }
 
-function render() {
-  renderStats();
-  renderChart();
-  renderLog();
-}
+function render() { renderStats(); renderChart(); renderLog(); }
 
-// ── Tabs ──────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab').forEach((el, i) => {
@@ -417,7 +355,6 @@ function switchTab(tab) {
   document.getElementById('logWrap').classList.toggle('visible', tab === 'log');
 }
 
-// ── Form ──────────────────────────────────────────────
 function openForm() {
   editId = null;
   document.getElementById('formTitle').textContent = '登錄資產';
@@ -455,30 +392,24 @@ function submitForm() {
   const amount    = Math.round(parseFloat(rawAmount));
   const date      = document.getElementById('inputDate').value;
   const note      = document.getElementById('inputNote').value.trim();
-
   if (!rawAmount || isNaN(amount) || amount < 0) { showToast('請輸入有效金額'); return; }
   if (!date) { showToast('請選擇日期'); return; }
-
   if (editId) {
-    entries = entries.map(e => e.id === editId ? { ...e, amount, date, note } : e);
+    entries = entries.map(e => e.id === editId ? {...e, amount, date, note} : e);
     showToast('已更新紀錄 ✓');
   } else {
     const existing = entries.find(e => e.date === date);
     if (existing) {
-      entries = entries.map(e => e.date === date ? { ...e, amount, note } : e);
+      entries = entries.map(e => e.date === date ? {...e, amount, note} : e);
       showToast('已更新當日紀錄 ✓');
     } else {
       entries.push({ id: Date.now().toString(), date, amount, note });
       showToast('已記錄 ✓');
     }
   }
-
-  saveData();
-  render();
-  closeForm();
+  saveData(); render(); closeForm();
 }
 
-// ── Delete ────────────────────────────────────────────
 function askDelete(id) {
   deleteId = id;
   document.getElementById('confirmOverlay').classList.add('show');
@@ -489,13 +420,10 @@ function closeConfirm() {
 }
 function doDelete() {
   entries = entries.filter(e => e.id !== deleteId);
-  saveData();
-  render();
-  closeConfirm();
+  saveData(); render(); closeConfirm();
   showToast('已刪除');
 }
 
-// ── Init ──────────────────────────────────────────────
 loadData();
 render();
 </script>
