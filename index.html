@@ -325,6 +325,19 @@ input[type=“number”]::-webkit-outer-spin-button { -webkit-appearance: none; 
   </div>
 </div>
 
+<!-- ── Stock Action Sheet ── -->
+
+<div class="overlay" id="sActionOverlay" onclick="if(event.target===this)closeSAction()">
+  <div class="sheet">
+    <div class="sheet-header">
+      <span class="sheet-title">股票操作</span>
+      <button class="btn-close" onclick="closeSAction()">✕</button>
+    </div>
+    <button class="btn-submit" style="margin-bottom:12px;background:linear-gradient(135deg,#4caf82,#3a8f68);" onclick="sActionLogPrice()">📝 登錄今日收盤價</button>
+    <button class="btn-submit" style="background:rgba(212,175,55,0.15);color:#d4af37;border:1px solid rgba(212,175,55,0.3);" onclick="sActionAddStock()">＋ 新增持股</button>
+  </div>
+</div>
+
 <!-- ── Confirm ── -->
 
 <div class="confirm-overlay" id="confirmOverlay">
@@ -426,10 +439,12 @@ function onFab() {
   else openSAction();
 }
 function openSAction() {
-  // If no holdings, go straight to add stock
   if(!holdings.length) { openSAdd(); return; }
-  openPriceForm(null);
+  document.getElementById('sActionOverlay').classList.add('show');
 }
+function closeSAction() { document.getElementById('sActionOverlay').classList.remove('show'); }
+function sActionLogPrice() { closeSAction(); setTimeout(()=>openPriceForm(null), 150); }
+function sActionAddStock() { closeSAction(); setTimeout(()=>openSAdd(), 150); }
 
 // ══════════════════════════════════════════
 // ── WEALTH ──
@@ -735,7 +750,7 @@ function closeConfirm() { document.getElementById('confirmOverlay').classList.re
 function doConfirm() { if(confirmCb) confirmCb(); closeConfirm(); }
 
 // ── Stock page FAB: show action sheet ──
-// (already handled by openSAction above)
+// FAB on stock page opens action sheet
 
 init();
 </script>
