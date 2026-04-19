@@ -1,4 +1,4 @@
-name: Update TWSE Daily Prices
+name: Update Taiwan Market Prices
 
 on:
   schedule:
@@ -16,20 +16,39 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Fetch TWSE data
+      - name: Create data folder
+        run: mkdir -p data
+
+      # 上市
+      - name: Fetch TWSE (上市)
         run: |
-          mkdir -p data
           curl -L "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL" -o data/twse_stock_day_all.json
 
-      - name: Check file content
+      # 上櫃
+      - name: Fetch TPEX OTC (上櫃)
         run: |
-          echo "Preview JSON:"
-          head -c 500 data/twse_stock_day_all.json
+          curl -L "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes" -o data/tpex_otc_day_all.json
 
-      - name: Commit updated JSON
+      # 興櫃
+      - name: Fetch TPEX ESB (興櫃)
+        run: |
+          curl -L "https://www.tpex.org.tw/openapi/v1/tpex_esb_latest_statistics" -o data/tpex_esb_day_all.json
+
+      - name: Preview
+        run: |
+          echo "TWSE:"
+          head -c 200 data/twse_stock_day_all.json || true
+          echo
+          echo "OTC:"
+          head -c 200 data/tpex_otc_day_all.json || true
+          echo
+          echo "ESB:"
+          head -c 200 data/tpex_esb_day_all.json || true
+
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/twse_stock_day_all.json
-          git diff --cached --quiet || git commit -m "auto update twse daily prices"
+          git add data/*.json
+          git diff --cached --quiet || git commit -m "auto update Taiwan stock prices"
           git push
