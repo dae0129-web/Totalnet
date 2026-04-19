@@ -1,0 +1,35 @@
+name: Update TWSE Daily Prices
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch TWSE data
+        run: |
+          mkdir -p data
+          curl -L "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL" -o data/twse_stock_day_all.json
+
+      - name: Check file content
+        run: |
+          echo "Preview JSON:"
+          head -c 500 data/twse_stock_day_all.json
+
+      - name: Commit updated JSON
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/twse_stock_day_all.json
+          git diff --cached --quiet || git commit -m "auto update twse daily prices"
+          git push
