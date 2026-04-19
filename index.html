@@ -301,6 +301,8 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
       <span class="sheet-title">登錄收盤價</span>
       <button class="btn-close" onclick="closePrice()">✕</button>
     </div>
+    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動抓取最新台股收盤價（目前先支援上市台股 / TWSE）。</p>
+    <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
     <div class="field-wrap">
       <label class="field-label">日期</label>
       <input type="date" id="sPriceDate" class="input-base" />
@@ -569,6 +571,52 @@ function buildPriceFields(date){
       <label class="field-label">${h.ticker} ${h.name ? '('+h.name+')' : ''} <span style="color:${h.market==='TW'?'#4caf82':'#6495ed'}">${h.market==='TW'?'台股 TWD':'美股 USD'}</span></label>
       <input type="number" class="input-base price-field" data-hid="${h.id}" placeholder="0" value="${dayLog[h.id] ?? ''}" />
     </div>`).join('');
+}
+
+async function fetchTwseClosingMap(){
+  const url = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL';
+  const res = await fetch(url, { method:'GET' });
+  if(!res.ok) throw new Error('TWSE API 讀取失敗');
+  const data = await res.json();
+  const map = {};
+  (Array.isArray(data) ? data : []).forEach(row => {
+    const code = String(row.Code || row['證券代號'] || '').trim();
+    const closeRaw = row.ClosingPrice || row['收盤價'] || row.Close || '';
+    const close = parseFloat(String(closeRaw).replace(/,/g, ''));
+    if(code && !isNaN(close)) map[code] = close;
+  });
+  return map;
+}
+
+async function autoFillLatestTWPrices(){
+  const twHoldings = holdings.filter(h => h.market === 'TW');
+  if(!twHoldings.length) return showToast('目前沒有台股持股');
+
+  const btn = document.getElementById('autoFetchBtn');
+  try {
+    if(btn){ btn.disabled = true; btn.textContent = '抓取中...'; }
+    const twseMap = await fetchTwseClosingMap();
+    let matched = 0;
+
+    document.querySelectorAll('.price-field').forEach(el => {
+      const hid = el.dataset.hid;
+      const h = holdings.find(x => x.id === hid);
+      if(!h || h.market !== 'TW') return;
+      const price = twseMap[h.ticker];
+      if(price != null){
+        el.value = price;
+        matched++;
+      }
+    });
+
+    if(matched === 0) showToast('查無可帶入的上市台股收盤價');
+    else showToast('已自動帶入 ' + matched + ' 檔台股價格');
+  } catch(err) {
+    console.error(err);
+    showToast('自動抓價失敗，請改手動輸入');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '⚡ 自動抓台股最新收盤價'; }
+  }
 }
 document.addEventListener('change', function(e){ if(e.target && e.target.id==='sPriceDate') buildPriceFields(e.target.value); });
 function submitPrices(){
