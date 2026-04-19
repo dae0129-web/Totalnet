@@ -1,3 +1,25 @@
+<script>
+async function loadStockData() {
+  try {
+    const res = await fetch('./data/twse_stock_day_all.json');
+    if (!res.ok) {
+      throw new Error('找不到 JSON 檔案');
+    }
+
+    const data = await res.json();
+    console.log('股票資料讀取成功：', data);
+    alert('JSON 讀取成功，目前筆數：' + data.length);
+    return data;
+  } catch (err) {
+    console.error('讀取失敗：', err);
+    alert('JSON 讀取失敗：' + err.message);
+    return [];
+  }
+}
+
+loadStockData();
+</script>
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
