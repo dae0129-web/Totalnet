@@ -301,7 +301,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
       <span class="sheet-title">登錄收盤價</span>
       <button class="btn-close" onclick="closePrice()">✕</button>
     </div>
-    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動抓取最新台股收盤價（目前先支援上市台股 / TWSE）。</p>
+    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新台股收盤價資料。建議搭配 GitHub Actions 每日自動更新 data/twse_stock_day_all.json。</p>
     <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
     <div class="field-wrap">
       <label class="field-label">日期</label>
@@ -574,12 +574,28 @@ function buildPriceFields(date){
 }
 
 async function fetchTwseClosingMap(){
-  const url = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL';
-  const res = await fetch(url, { method:'GET' });
-  if(!res.ok) throw new Error('TWSE API 讀取失敗');
-  const data = await res.json();
+  const candidates = [
+    './data/twse_stock_day_all.json',
+    'data/twse_stock_day_all.json'
+  ];
+
+  let data = null;
+  for(const url of candidates){
+    try {
+      const res = await fetch(url, { method:'GET', cache:'no-store' });
+      if(res.ok){
+        data = await res.json();
+        break;
+      }
+    } catch(err) {
+      console.warn('讀取本地台股資料失敗:', url, err);
+    }
+  }
+
+  if(!Array.isArray(data)) throw new Error('找不到本地台股收盤價資料，請確認 data/twse_stock_day_all.json 是否存在');
+
   const map = {};
-  (Array.isArray(data) ? data : []).forEach(row => {
+  data.forEach(row => {
     const code = String(row.Code || row['證券代號'] || '').trim();
     const closeRaw = row.ClosingPrice || row['收盤價'] || row.Close || '';
     const close = parseFloat(String(closeRaw).replace(/,/g, ''));
