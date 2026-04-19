@@ -1,25 +1,3 @@
-<script>
-async function loadStockData() {
-  try {
-    const res = await fetch('./data/twse_stock_day_all.json');
-    if (!res.ok) {
-      throw new Error('找不到 JSON 檔案');
-    }
-
-    const data = await res.json();
-    console.log('股票資料讀取成功：', data);
-    alert('JSON 讀取成功，目前筆數：' + data.length);
-    return data;
-  } catch (err) {
-    console.error('讀取失敗：', err);
-    alert('JSON 讀取失敗：' + err.message);
-    return [];
-  }
-}
-
-loadStockData();
-</script>
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -121,8 +99,8 @@ html, body {
 .currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #b8860b; font-size: 15px; pointer-events: none; }
 .input-amount { padding-left: 34px; font-family: 'Playfair Display', serif; font-size: 20px; border-color: #e8d080; }
 .btn-submit { width: 100%; padding: 15px; border-radius: 14px; border: none; background: linear-gradient(135deg, #c9a227, #a8841a); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
-.seg { display: flex; background: #f0ede8; border-radius: 10px; padding: 3px; margin-bottom: 14px; }
-.seg-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: #999; font-size: 13px; cursor: pointer; }
+.seg { display: flex; background: #f0ede8; border-radius: 10px; padding: 3px; margin-bottom: 14px; gap: 3px; }
+.seg-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: #999; font-size: 12px; cursor: pointer; }
 .seg-btn.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .confirm-overlay.show { opacity: 1; pointer-events: all; }
@@ -291,14 +269,16 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
     <div class="field-wrap">
       <label class="field-label">市場</label>
       <div class="seg">
-        <button class="seg-btn active" id="segTW" onclick="selectMarket('TW')">🇹🇼 台股</button>
-        <button class="seg-btn" id="segUS" onclick="selectMarket('US')">🇺🇸 美股</button>
+        <button class="seg-btn active" id="segTW" onclick="selectMarket('TW')">上市</button>
+        <button class="seg-btn" id="segOTC" onclick="selectMarket('OTC')">上櫃</button>
+        <button class="seg-btn" id="segESB" onclick="selectMarket('ESB')">興櫃</button>
+        <button class="seg-btn" id="segUS" onclick="selectMarket('US')">美股</button>
       </div>
     </div>
     <div class="input-row">
       <div class="field-wrap">
         <label class="field-label">股票代號</label>
-        <input type="text" id="sInputTicker" class="input-base" placeholder="例如 2330 / AAPL" style="text-transform:uppercase" />
+        <input type="text" id="sInputTicker" class="input-base" placeholder="例如 2330 / 6488 / AAPL" style="text-transform:uppercase" />
       </div>
       <div class="field-wrap">
         <label class="field-label">股數</label>
@@ -323,8 +303,8 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
       <span class="sheet-title">登錄收盤價</span>
       <button class="btn-close" onclick="closePrice()">✕</button>
     </div>
-    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新台股收盤價資料。建議搭配 GitHub Actions 每日自動更新 data/twse_stock_day_all.json。</p>
-    <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
+    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新上市 / 上櫃 / 興櫃收盤價資料。建議搭配 GitHub Actions 每日自動更新 data/*.json。</p>
+    <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台灣股票最新收盤價</button>
     <div class="field-wrap">
       <label class="field-label">日期</label>
       <input type="date" id="sPriceDate" class="input-base" />
@@ -411,10 +391,14 @@ function init() {
     const s = JSON.parse(localStorage.getItem(SK)) || {};
     holdings = s.holdings || [];
     priceLog = s.priceLog || {};
-  } catch {}
+  } catch {
+    holdings = [];
+    priceLog = {};
+  }
   try { trades = JSON.parse(localStorage.getItem(TK)) || []; } catch { trades = []; }
   try { portfolioHistory = JSON.parse(localStorage.getItem(PFK)) || []; } catch { portfolioHistory = []; }
-  try { fxRate = parseFloat(localStorage.getItem(FXK)) || 32; } catch {}
+  try { fxRate = parseFloat(localStorage.getItem(FXK)) || 32; } catch { fxRate = 32; }
+
   document.getElementById('fxRate').value = fxRate;
   setToday();
   renderWealth();
@@ -433,6 +417,7 @@ function fmtN(v){ return Math.round(v).toLocaleString('zh-TW'); }
 function fmtShort(v){ if(v>=1000000) return '$'+(v/1000000).toFixed(2)+'M'; if(v>=1000) return '$'+(v/1000).toFixed(1)+'K'; return '$'+fmtN(v); }
 function fmtDate(s){ const d = new Date(s+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate(); }
 function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
+function isTaiwanStockMarket(m){ return ['TW', 'OTC', 'ESB'].includes(m); }
 
 function switchPage(page){
   currentPage = page;
@@ -466,13 +451,16 @@ function openWForm(entry){
 function openWFormById(id){ const entry = wEntries.find(x=>x.id===id); if(entry) openWForm(entry); }
 function closeWForm(){ document.getElementById('wFormOverlay').classList.remove('show'); wEditId=null; }
 function wOverlayClose(e){ if(e.target.id==='wFormOverlay') closeWForm(); }
+
 function submitWForm(){
   const raw = document.getElementById('wInputAmount').value.trim();
   const amount = Math.round(parseFloat(raw));
   const date = document.getElementById('wInputDate').value;
   const note = document.getElementById('wInputNote').value.trim();
+
   if(!raw || isNaN(amount) || amount < 0) return showToast('請輸入有效金額');
   if(!date) return showToast('請選擇日期');
+
   if(wEditId){
     wEntries = wEntries.map(e => e.id===wEditId ? {...e, amount, date, note} : e);
     showToast('已更新 ✓');
@@ -486,44 +474,86 @@ function submitWForm(){
       showToast('已記錄 ✓');
     }
   }
-  saveWealth(); renderWealth(); closeWForm();
+
+  saveWealth();
+  renderWealth();
+  closeWForm();
 }
+
 function renderWealth(){
   const sorted = [...wEntries].sort((a,b)=>a.date.localeCompare(b.date));
   const latest = sorted[sorted.length-1];
   const prev = sorted[sorted.length-2];
+
   document.getElementById('wStatLatest').textContent = latest ? fmtShort(latest.amount) : '—';
   document.getElementById('wStatATH').textContent = sorted.length ? fmtShort(Math.max(...sorted.map(x=>x.amount))) : '—';
   document.getElementById('wStatCount').textContent = sorted.length + ' 筆紀錄';
+
   const ch = document.getElementById('wStatChange');
   if(latest && prev){
     const diff = latest.amount - prev.amount;
     const pct = prev.amount ? (diff/prev.amount*100).toFixed(2) : '0.00';
     ch.textContent = (diff>=0?'▲ ':'▼ ') + Math.abs(pct) + '%';
     ch.className = 'stat-sub ' + (diff>=0?'up':'down');
-  } else ch.textContent = '';
+  } else {
+    ch.textContent = '';
+    ch.className = 'stat-sub';
+  }
+
   renderWChart(sorted);
   renderWLog(sorted);
 }
+
 function renderWChart(sorted){
   const canvas=document.getElementById('wChart');
   const empty=document.getElementById('wChartEmpty');
-  if(sorted.length<2){ canvas.style.display='none'; empty.style.display='block'; if(wChartInst) wChartInst.destroy(); return; }
-  canvas.style.display='block'; empty.style.display='block'; empty.style.display='none';
+
+  if(sorted.length<2){
+    canvas.style.display='none';
+    empty.style.display='block';
+    if(wChartInst) wChartInst.destroy();
+    return;
+  }
+
+  canvas.style.display='block';
+  empty.style.display='none';
+
   const labels=sorted.map(x=>fmtDate(x.date));
   const data=sorted.map(x=>x.amount);
+
   if(wChartInst) wChartInst.destroy();
   wChartInst = new Chart(canvas, {
     type:'line',
-    data:{ labels, datasets:[{ data, borderColor:'#b8860b', backgroundColor:'rgba(180,134,11,0.12)', fill:true, pointRadius:4, tension:0.3 }] },
-    options:{ responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ ticks:{ callback:v=>Math.round(v).toLocaleString('zh-TW') } } } }
+    data:{
+      labels,
+      datasets:[{
+        data,
+        borderColor:'#b8860b',
+        backgroundColor:'rgba(180,134,11,0.12)',
+        fill:true,
+        pointRadius:4,
+        tension:0.3
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ ticks:{ callback:v=>Math.round(v).toLocaleString('zh-TW') } } }
+    }
   });
 }
+
 function renderWLog(sorted){
   const list=document.getElementById('wLogList');
   const empty=document.getElementById('wLogEmpty');
   const rows=[...sorted].reverse();
-  if(!rows.length){ empty.style.display='block'; list.innerHTML=''; return; }
+
+  if(!rows.length){
+    empty.style.display='block';
+    list.innerHTML='';
+    return;
+  }
+
   empty.style.display='none';
   list.innerHTML = rows.map(e=>`
     <div class="entry">
@@ -540,7 +570,15 @@ function renderWLog(sorted){
       </div>
     </div>`).join('');
 }
-function confirmDeleteW(id){ askConfirm('確認刪除此筆資產紀錄？', ()=>{ wEntries = wEntries.filter(x=>x.id!==id); saveWealth(); renderWealth(); showToast('已刪除'); }); }
+
+function confirmDeleteW(id){
+  askConfirm('確認刪除此筆資產紀錄？', ()=>{
+    wEntries = wEntries.filter(x=>x.id!==id);
+    saveWealth();
+    renderWealth();
+    showToast('已刪除');
+  });
+}
 
 function switchSTab(t){
   sTab=t;
@@ -548,16 +586,32 @@ function switchSTab(t){
   document.getElementById('sHoldingsWrap').style.display = t==='holdings' ? 'block' : 'none';
   document.getElementById('sChartWrap').classList.toggle('visible', t==='chart');
 }
+
 function openSAction(){ document.getElementById('sActionOverlay').classList.add('show'); }
 function closeSAction(){ document.getElementById('sActionOverlay').classList.remove('show'); }
-function selectMarket(m){ newStockMkt=m; document.getElementById('segTW').classList.toggle('active',m==='TW'); document.getElementById('segUS').classList.toggle('active',m==='US'); }
-function openBuyForm(){ closeSAction(); selectMarket('TW'); ['sInputTicker','sInputShares','sInputName','sInputCost'].forEach(id=>document.getElementById(id).value=''); document.getElementById('sBuyOverlay').classList.add('show'); }
+
+function selectMarket(m){
+  newStockMkt = m;
+  document.getElementById('segTW').classList.toggle('active', m === 'TW');
+  document.getElementById('segOTC').classList.toggle('active', m === 'OTC');
+  document.getElementById('segESB').classList.toggle('active', m === 'ESB');
+  document.getElementById('segUS').classList.toggle('active', m === 'US');
+}
+
+function openBuyForm(){
+  closeSAction();
+  selectMarket('TW');
+  ['sInputTicker','sInputShares','sInputName','sInputCost'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sBuyOverlay').classList.add('show');
+}
 function closeBuyForm(){ document.getElementById('sBuyOverlay').classList.remove('show'); }
+
 function submitBuyForm(){
   const ticker=document.getElementById('sInputTicker').value.trim().toUpperCase();
   const shares=parseFloat(document.getElementById('sInputShares').value);
   const name=document.getElementById('sInputName').value.trim();
   const cost=parseFloat(document.getElementById('sInputCost').value);
+
   if(!ticker) return showToast('請輸入股票代號');
   if(!shares || shares<=0) return showToast('請輸入有效股數');
   if(!cost || cost<=0) return showToast('請輸入買入均價');
@@ -574,7 +628,11 @@ function submitBuyForm(){
     holdings.push({ id:'h'+Date.now(), ticker, name, shares, market:newStockMkt, avgCost:cost });
     showToast(ticker+' 已新增 ✓');
   }
-  saveStock(); renderStock(); closeBuyForm(); switchSTab('holdings');
+
+  saveStock();
+  renderStock();
+  closeBuyForm();
+  switchSTab('holdings');
 }
 
 function openPriceForm(){
@@ -585,156 +643,274 @@ function openPriceForm(){
   document.getElementById('sPriceOverlay').classList.add('show');
 }
 function closePrice(){ document.getElementById('sPriceOverlay').classList.remove('show'); }
+
 function buildPriceFields(date){
   const dayLog = priceLog[date] || {};
   const wrap = document.getElementById('sPriceFields');
   wrap.innerHTML = holdings.map(h=>`
     <div class="field-wrap">
-      <label class="field-label">${h.ticker} ${h.name ? '('+h.name+')' : ''} <span style="color:${h.market==='TW'?'#4caf82':'#6495ed'}">${h.market==='TW'?'台股 TWD':'美股 USD'}</span></label>
+      <label class="field-label">
+        ${h.ticker} ${h.name ? '(' + h.name + ')' : ''}
+        <span style="color:${h.market === 'US' ? '#6495ed' : '#4caf82'}">
+          ${
+            h.market === 'TW' ? '上市 TWD' :
+            h.market === 'OTC' ? '上櫃 TWD' :
+            h.market === 'ESB' ? '興櫃 TWD' :
+            '美股 USD'
+          }
+        </span>
+      </label>
       <input type="number" class="input-base price-field" data-hid="${h.id}" placeholder="0" value="${dayLog[h.id] ?? ''}" />
     </div>`).join('');
 }
 
-async function fetchTwseClosingMap(){
-  const candidates = [
-    './data/twse_stock_day_all.json',
-    'data/twse_stock_day_all.json'
-  ];
-
-  let data = null;
-  for(const url of candidates){
+async function fetchJsonArray(pathList) {
+  for (const url of pathList) {
     try {
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if(res.ok){
-        data = await res.json();
-        break;
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
       }
-    } catch(err) {
-      console.warn('讀取本地台股資料失敗:', url, err);
+    } catch (err) {
+      console.warn('讀取失敗:', url, err);
     }
   }
+  return [];
+}
 
-  if(!Array.isArray(data)) throw new Error('找不到本地台股收盤價資料，請確認 data/twse_stock_day_all.json 是否存在');
-
+function normalizeCloseMap(rows) {
   const map = {};
-  data.forEach(row => {
-    const code = String(row.Code || row['證券代號'] || '').trim();
-    const closeRaw = row.ClosingPrice || row['收盤價'] || row.Close || '';
-    const close = parseFloat(String(closeRaw).replace(/,/g, ''));
-    if(code && !isNaN(close)) map[code] = close;
+
+  rows.forEach(row => {
+    const code = String(
+      row.Code ||
+      row.code ||
+      row['代號'] ||
+      row['證券代號'] ||
+      row['股票代號'] ||
+      ''
+    ).trim();
+
+    const closeRaw =
+      row.ClosingPrice ||
+      row.Close ||
+      row.close ||
+      row['收盤價'] ||
+      row['收盤'] ||
+      row['成交價格'] ||
+      row['最新成交價'] ||
+      '';
+
+    const close = parseFloat(String(closeRaw).replace(/,/g, '').trim());
+
+    if (code && !isNaN(close)) {
+      map[code] = close;
+    }
   });
+
   return map;
 }
 
-async function autoFillLatestTWPrices(){
-  const twHoldings = holdings.filter(h => h.market === 'TW');
-  if(!twHoldings.length) return showToast('目前沒有台股持股');
+async function fetchTaiwanClosingMap() {
+  const twseRows = await fetchJsonArray([
+    './data/twse_stock_day_all.json',
+    'data/twse_stock_day_all.json'
+  ]);
+
+  const otcRows = await fetchJsonArray([
+    './data/tpex_otc_day_all.json',
+    'data/tpex_otc_day_all.json'
+  ]);
+
+  const esbRows = await fetchJsonArray([
+    './data/tpex_esb_day_all.json',
+    'data/tpex_esb_day_all.json'
+  ]);
+
+  return {
+    TW: normalizeCloseMap(twseRows),
+    OTC: normalizeCloseMap(otcRows),
+    ESB: normalizeCloseMap(esbRows)
+  };
+}
+
+async function autoFillLatestTWPrices() {
+  const twHoldings = holdings.filter(h => isTaiwanStockMarket(h.market));
+  if (!twHoldings.length) return showToast('目前沒有台灣股票持股');
 
   const btn = document.getElementById('autoFetchBtn');
+
   try {
-    if(btn){ btn.disabled = true; btn.textContent = '抓取中...'; }
-    const twseMap = await fetchTwseClosingMap();
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '抓取中...';
+    }
+
+    const marketMaps = await fetchTaiwanClosingMap();
     let matched = 0;
 
     document.querySelectorAll('.price-field').forEach(el => {
       const hid = el.dataset.hid;
       const h = holdings.find(x => x.id === hid);
-      if(!h || h.market !== 'TW') return;
-      const price = twseMap[h.ticker];
-      if(price != null){
+      if (!h || !isTaiwanStockMarket(h.market)) return;
+
+      const marketMap = marketMaps[h.market] || {};
+      const price = marketMap[h.ticker];
+
+      if (price != null) {
         el.value = price;
         matched++;
       }
     });
 
-    if(matched === 0) showToast('查無可帶入的上市台股收盤價');
-    else showToast('已自動帶入 ' + matched + ' 檔台股價格');
+    if (matched === 0) {
+      showToast('查無可帶入的上市 / 上櫃 / 興櫃收盤價');
+    } else {
+      showToast('已自動帶入 ' + matched + ' 檔台灣股票價格');
+    }
   } catch(err) {
     console.error(err);
     showToast('自動抓價失敗，請改手動輸入');
   } finally {
-    if(btn){ btn.disabled = false; btn.textContent = '⚡ 自動抓台股最新收盤價'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ 自動抓台灣股票最新收盤價';
+    }
   }
 }
-document.addEventListener('change', function(e){ if(e.target && e.target.id==='sPriceDate') buildPriceFields(e.target.value); });
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='sPriceDate') buildPriceFields(e.target.value);
+});
+
 function submitPrices(){
   const date = document.getElementById('sPriceDate').value;
   if(!date) return showToast('請選擇日期');
   if(!priceLog[date]) priceLog[date] = {};
+
   let totalValue = 0;
   let saved = 0;
+
   document.querySelectorAll('.price-field').forEach(el=>{
     const hid = el.dataset.hid;
     const v = parseFloat(el.value);
     if(hid && !isNaN(v) && v>0){
       priceLog[date][hid] = v;
       const h = holdings.find(x=>x.id===hid);
-      if(h){ totalValue += h.market==='TW' ? v*h.shares : v*h.shares*fxRate; }
+      if (h) {
+        totalValue += isTaiwanStockMarket(h.market) ? v * h.shares : v * h.shares * fxRate;
+      }
       saved++;
     }
   });
+
   if(!saved) return showToast('請至少輸入一個價格');
+
   portfolioHistory = portfolioHistory.filter(x=>x.date!==date);
   portfolioHistory.push({date, value: Math.round(totalValue)});
   portfolioHistory.sort((a,b)=>a.date.localeCompare(b.date));
-  saveStock(); savePortfolioHistory(); renderStock(); closePrice(); showToast('價格已儲存 ✓');
+
+  saveStock();
+  savePortfolioHistory();
+  renderStock();
+  closePrice();
+  showToast('價格已儲存 ✓');
 }
 
 function latestPriceForHolding(id){
   const dates = Object.keys(priceLog).sort().reverse();
-  for(const d of dates){ if(priceLog[d] && priceLog[d][id] != null) return {date:d, price:priceLog[d][id]}; }
+  for(const d of dates){
+    if(priceLog[d] && priceLog[d][id] != null) return {date:d, price:priceLog[d][id]};
+  }
   return null;
 }
+
 function computeHoldingMarketValue(h){
   const lp = latestPriceForHolding(h.id);
   if(!lp) return null;
-  return h.market==='TW' ? lp.price*h.shares : lp.price*h.shares*fxRate;
+  return isTaiwanStockMarket(h.market) ? lp.price * h.shares : lp.price * h.shares * fxRate;
 }
+
 function computeHoldingUnrealized(h){
   const lp = latestPriceForHolding(h.id);
   if(!lp) return null;
-  const currentValue = h.market==='TW' ? lp.price*h.shares : lp.price*h.shares*fxRate;
-  const costValue = h.market==='TW' ? h.avgCost*h.shares : h.avgCost*h.shares*fxRate;
-  return { value: Math.round(currentValue - costValue), pct: costValue ? ((currentValue-costValue)/costValue*100) : 0, lastDate: lp.date, price: lp.price };
+
+  const currentValue = isTaiwanStockMarket(h.market)
+    ? lp.price * h.shares
+    : lp.price * h.shares * fxRate;
+
+  const costValue = isTaiwanStockMarket(h.market)
+    ? h.avgCost * h.shares
+    : h.avgCost * h.shares * fxRate;
+
+  return {
+    value: Math.round(currentValue - costValue),
+    pct: costValue ? ((currentValue - costValue) / costValue * 100) : 0,
+    lastDate: lp.date,
+    price: lp.price
+  };
 }
+
 function renderStock(){
   let totalValue = 0;
   let totalCost = 0;
   let latestDates = [];
+
   holdings.forEach(h=>{
     const lp = latestPriceForHolding(h.id);
     if(lp){
-      totalValue += h.market==='TW' ? lp.price*h.shares : lp.price*h.shares*fxRate;
+      totalValue += isTaiwanStockMarket(h.market) ? lp.price * h.shares : lp.price * h.shares * fxRate;
       latestDates.push(lp.date);
     }
-    totalCost += h.market==='TW' ? h.avgCost*h.shares : h.avgCost*h.shares*fxRate;
+    totalCost += isTaiwanStockMarket(h.market) ? h.avgCost * h.shares : h.avgCost * h.shares * fxRate;
   });
+
   const totalPnl = Math.round(totalValue - totalCost);
   const pct = totalCost ? (totalPnl/totalCost*100).toFixed(2) : '0.00';
+
   document.getElementById('sStatValue').textContent = holdings.length ? fmtShort(totalValue) : '—';
   document.getElementById('sStatDate').textContent = latestDates.length ? ('最新價格：' + latestDates.sort().pop()) : '尚無價格紀錄';
+
   const pnlEl = document.getElementById('sStatPnl');
   pnlEl.textContent = holdings.length ? ((totalPnl>=0?'+ ':'- ') + fmtShort(Math.abs(totalPnl))) : '—';
   pnlEl.className = 'stat-value ' + (totalPnl>=0 ? 'up' : 'down');
+
   document.getElementById('sStatPnlPct').textContent = holdings.length ? ((totalPnl>=0?'▲ ':'▼ ') + Math.abs(pct) + '%') : '請先新增持股';
   document.getElementById('sStatPnlCard').className = 'stat-card ' + (holdings.length ? (totalPnl>=0 ? 'success':'danger') : 'secondary');
+
   renderHoldings();
   renderSChart();
 }
+
 function renderHoldings(){
   const list=document.getElementById('sHoldingsList');
   const empty=document.getElementById('sHoldingsEmpty');
-  if(!holdings.length){ list.innerHTML=''; empty.style.display='block'; return; }
+
+  if(!holdings.length){
+    list.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+
   empty.style.display='none';
   list.innerHTML = holdings.map(h=>{
     const mv = computeHoldingMarketValue(h);
     const pnl = computeHoldingUnrealized(h);
+
     return `
       <div class="holding-card">
         <div class="holding-top">
           <div>
             <span class="holding-ticker">${h.ticker}</span>
-            <span class="holding-badge ${h.market==='TW'?'badge-tw':'badge-us'}">${h.market==='TW'?'台股':'美股'}</span>
+            <span class="holding-badge ${h.market === 'US' ? 'badge-us' : 'badge-tw'}">
+              ${
+                h.market === 'TW' ? '上市' :
+                h.market === 'OTC' ? '上櫃' :
+                h.market === 'ESB' ? '興櫃' :
+                '美股'
+              }
+            </span>
             ${h.name ? `<div class="holding-name">${h.name}</div>` : ''}
             <div class="holding-shares">持有 ${h.shares.toLocaleString('zh-TW')} 股</div>
             <div class="holding-cost">均價 ${h.avgCost.toLocaleString('zh-TW')}</div>
@@ -753,8 +929,11 @@ function renderHoldings(){
       </div>`;
   }).join('');
 }
+
 function prefillBuy(id){
-  const h = holdings.find(x=>x.id===id); if(!h) return;
+  const h = holdings.find(x=>x.id===id);
+  if(!h) return;
+
   selectMarket(h.market);
   document.getElementById('sInputTicker').value = h.ticker;
   document.getElementById('sInputShares').value = '';
@@ -762,23 +941,49 @@ function prefillBuy(id){
   document.getElementById('sInputCost').value = h.avgCost || '';
   document.getElementById('sBuyOverlay').classList.add('show');
 }
+
 function renderSChart(){
   const canvas=document.getElementById('sChart');
   const empty=document.getElementById('sChartEmpty');
   const data=[...portfolioHistory].sort((a,b)=>a.date.localeCompare(b.date));
-  if(data.length<2){ canvas.style.display='none'; empty.style.display='block'; if(sChartInst) sChartInst.destroy(); return; }
-  canvas.style.display='block'; empty.style.display='none';
+
+  if(data.length<2){
+    canvas.style.display='none';
+    empty.style.display='block';
+    if(sChartInst) sChartInst.destroy();
+    return;
+  }
+
+  canvas.style.display='block';
+  empty.style.display='none';
+
   if(sChartInst) sChartInst.destroy();
   sChartInst = new Chart(canvas, {
     type:'line',
-    data:{ labels:data.map(x=>fmtDate(x.date)), datasets:[{ data:data.map(x=>x.value), borderColor:'#2c5fad', backgroundColor:'rgba(44,95,173,0.12)', fill:true, pointRadius:4, tension:0.3 }] },
-    options:{ responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ ticks:{ callback:v=>Math.round(v).toLocaleString('zh-TW') } } } }
+    data:{
+      labels:data.map(x=>fmtDate(x.date)),
+      datasets:[{
+        data:data.map(x=>x.value),
+        borderColor:'#2c5fad',
+        backgroundColor:'rgba(44,95,173,0.12)',
+        fill:true,
+        pointRadius:4,
+        tension:0.3
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ ticks:{ callback:v=>Math.round(v).toLocaleString('zh-TW') } } }
+    }
   });
 }
 
 function openSellForm(id){
   sellingHoldingId = id;
-  const h = holdings.find(x=>x.id===id); if(!h) return;
+  const h = holdings.find(x=>x.id===id);
+  if(!h) return;
+
   document.getElementById('sSellTitle').textContent = '賣出 ' + h.ticker;
   document.getElementById('sSellSubtitle').textContent = '目前持有 ' + h.shares.toLocaleString('zh-TW') + ' 股';
   document.getElementById('sSellDate').value = today();
@@ -789,16 +994,27 @@ function openSellForm(id){
   ['sSellShares','sSellPrice','sSellCost'].forEach(id=>document.getElementById(id).oninput = updateSellPreview);
   document.getElementById('sSellOverlay').classList.add('show');
 }
-function closeSell(){ document.getElementById('sSellOverlay').classList.remove('show'); sellingHoldingId = null; }
+
+function closeSell(){
+  document.getElementById('sSellOverlay').classList.remove('show');
+  sellingHoldingId = null;
+}
+
 function updateSellPreview(){
   const shares = parseFloat(document.getElementById('sSellShares').value);
   const price = parseFloat(document.getElementById('sSellPrice').value);
   const cost = parseFloat(document.getElementById('sSellCost').value);
   const preview = document.getElementById('sSellPreview');
-  if(!shares || !price || !cost) { preview.style.display='none'; return; }
+
+  if(!shares || !price || !cost) {
+    preview.style.display='none';
+    return;
+  }
+
   const pnl = (price - cost) * shares;
   const pct = cost ? ((price-cost)/cost*100).toFixed(2) : '0.00';
   const up = pnl >= 0;
+
   preview.style.display='block';
   preview.style.background = up ? '#edfaf4' : '#fdf0f0';
   preview.style.borderColor = up ? '#a8dfc4' : '#f0b8b8';
@@ -806,24 +1022,45 @@ function updateSellPreview(){
   document.getElementById('sSellPnlText').style.color = up ? '#2e7d52' : '#c0392b';
   document.getElementById('sSellPnlPct').textContent = (up?'▲ +':'▼ ') + Math.abs(pct) + '%';
 }
+
 function submitSell(){
-  const h = holdings.find(x=>x.id===sellingHoldingId); if(!h) return;
+  const h = holdings.find(x=>x.id===sellingHoldingId);
+  if(!h) return;
+
   const date = document.getElementById('sSellDate').value;
   const sellShares = parseFloat(document.getElementById('sSellShares').value);
   const sellPrice = parseFloat(document.getElementById('sSellPrice').value);
   const costPrice = parseFloat(document.getElementById('sSellCost').value);
+
   if(!date) return showToast('請選擇日期');
   if(!sellShares || sellShares<=0) return showToast('請輸入賣出股數');
   if(sellShares > h.shares) return showToast('賣出股數超過持有數量');
   if(!sellPrice || sellPrice<=0) return showToast('請輸入賣出價格');
   if(!costPrice || costPrice<=0) return showToast('請輸入成本');
+
   const pnl = Math.round((sellPrice - costPrice) * sellShares * (h.market==='US' ? fxRate : 1));
-  trades.push({ id:'t'+Date.now(), ticker:h.ticker, name:h.name || '', market:h.market, date, sellShares, sellPrice, costPrice, pnl });
+  trades.push({
+    id:'t'+Date.now(),
+    ticker:h.ticker,
+    name:h.name || '',
+    market:h.market,
+    date,
+    sellShares,
+    sellPrice,
+    costPrice,
+    pnl
+  });
   saveTrades();
+
   const remaining = h.shares - sellShares;
   if(remaining<=0) holdings = holdings.filter(x=>x.id!==h.id);
   else holdings = holdings.map(x=>x.id===h.id ? {...x, shares:remaining} : x);
-  saveStock(); renderStock(); renderTrades(); closeSell(); showToast('已記錄賣出 ✓');
+
+  saveStock();
+  renderStock();
+  renderTrades();
+  closeSell();
+  showToast('已記錄賣出 ✓');
 }
 
 function renderTrades(){
@@ -833,12 +1070,19 @@ function renderTrades(){
   const wins = trades.filter(t=>t.pnl>0).length;
   const losses = trades.filter(t=>t.pnl<0).length;
   const winRate = trades.length ? ((wins/trades.length)*100).toFixed(0) : '0';
+
   document.getElementById('tStatTotal').textContent = trades.length ? ((totalPnl>=0?'+ ':'- ') + '$ ' + Math.abs(totalPnl).toLocaleString('zh-TW')) : '—';
   document.getElementById('tStatCount').textContent = trades.length + ' 筆交易';
   document.getElementById('tStatWinRate').textContent = trades.length ? (winRate + '%') : '—';
   document.getElementById('tStatWinLoss').textContent = wins + ' 勝 / ' + losses + ' 敗';
   document.getElementById('tStatCard').className = 'stat-card ' + (totalPnl>=0 ? 'success' : 'danger');
-  if(!trades.length){ empty.style.display='block'; list.innerHTML=''; return; }
+
+  if(!trades.length){
+    empty.style.display='block';
+    list.innerHTML='';
+    return;
+  }
+
   empty.style.display='none';
   const sorted=[...trades].sort((a,b)=>b.date.localeCompare(a.date));
   list.innerHTML = sorted.map(t=>{
@@ -862,12 +1106,38 @@ function renderTrades(){
       </div>`;
   }).join('');
 }
-function confirmDeleteTrade(id){ askConfirm('確認刪除此筆交易紀錄？', ()=>{ trades = trades.filter(x=>x.id!==id); saveTrades(); renderTrades(); showToast('已刪除'); }); }
-function confirmDeleteHolding(id){ askConfirm('確認刪除此持股？相關價格仍會保留，但不再計入持倉。', ()=>{ holdings = holdings.filter(x=>x.id!==id); saveStock(); renderStock(); showToast('已刪除'); }); }
 
-function askConfirm(msg, cb){ confirmCb = cb; document.getElementById('confirmTitle').textContent = msg; document.getElementById('confirmOverlay').classList.add('show'); }
-function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('show'); confirmCb = null; }
-function doConfirm(){ if(confirmCb) confirmCb(); closeConfirm(); }
+function confirmDeleteTrade(id){
+  askConfirm('確認刪除此筆交易紀錄？', ()=>{
+    trades = trades.filter(x=>x.id!==id);
+    saveTrades();
+    renderTrades();
+    showToast('已刪除');
+  });
+}
+
+function confirmDeleteHolding(id){
+  askConfirm('確認刪除此持股？相關價格仍會保留，但不再計入持倉。', ()=>{
+    holdings = holdings.filter(x=>x.id!==id);
+    saveStock();
+    renderStock();
+    showToast('已刪除');
+  });
+}
+
+function askConfirm(msg, cb){
+  confirmCb = cb;
+  document.getElementById('confirmTitle').textContent = msg;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmCb = null;
+}
+function doConfirm(){
+  if(confirmCb) confirmCb();
+  closeConfirm();
+}
 
 init();
 </script>
