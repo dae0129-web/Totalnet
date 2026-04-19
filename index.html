@@ -1,3 +1,41 @@
+function normalizeCloseMap(rows) {
+  const map = {};
+
+  rows.forEach(row => {
+
+    const code = String(
+      row.Code ||
+      row.code ||
+      row.SecuritiesCompanyCode ||     // ⭐ 上櫃/興櫃
+      row['代號'] ||
+      row['證券代號'] ||
+      row['股票代號'] ||
+      ''
+    ).trim();
+
+    const closeRaw =
+      row.ClosingPrice ||
+      row.Close ||
+      row.close ||
+      row['收盤價'] ||
+      row['收盤'] ||
+      row['成交價格'] ||
+      row['最新成交價'] ||
+      row.LatestPrice ||               // ⭐ 興櫃
+      '';
+
+    const close = parseFloat(String(closeRaw).replace(/,/g, '').trim());
+
+    if (code && !isNaN(close)) {
+      map[code] = close;
+    }
+  });
+
+  return map;
+}
+
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
