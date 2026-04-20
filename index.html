@@ -1,135 +1,131 @@
 <!DOCTYPE html>
-<html lang="zh-Hant-TW">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="資產追蹤" />
+<title>總資產追蹤</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
 
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="資產追蹤" />
-
-  <title>總資產追蹤</title>
-
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-    html, body {
-      background: #f5f5f0;
-      color: #1a1a1a;
-      font-family: 'DM Sans', 'Noto Sans TC', sans-serif;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-    .app {
-      max-width: 480px;
-      margin: 0 auto;
-      padding-bottom: 120px;
-      min-height: 100vh;
-      background: linear-gradient(160deg, #f5f5f0 0%, #eeede8 60%, #f0efe9 100%);
-    }
-    .main-nav { display: flex; background: #fff; border-bottom: 1px solid #e0ddd5; box-shadow: 0 1px 4px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 20; }
-    .nav-btn { flex: 1; padding: 14px 0; border: none; background: transparent; color: #999; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
-    .nav-btn.active { color: #b8860b; border-bottom-color: #b8860b; }
-    .header { padding: 32px 24px 0; }
-    .header .eyebrow { color: #999; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
-    .header h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-top: 4px; }
-    .stats { display: flex; gap: 12px; padding: 16px 24px 0; }
-    .stat-card { flex: 1; border-radius: 16px; padding: 14px 16px; }
-    .stat-card.primary { background: #fff8e8; border: 1px solid #e8d080; }
-    .stat-card.secondary { background: #fff; border: 1px solid #e0ddd5; }
-    .stat-card.success { background: #edfaf4; border: 1px solid #a8dfc4; }
-    .stat-card.danger { background: #fdf0f0; border: 1px solid #f0b8b8; }
-    .stat-label { font-size: 10px; color: #999; letter-spacing: 1.5px; text-transform: uppercase; }
-    .stat-value { font-family: 'Playfair Display', serif; font-size: 20px; color: #1a1a1a; margin-top: 6px; font-weight: 700; word-break: break-word; }
-    .stat-card.success .stat-value { color: #2e7d52; }
-    .stat-card.danger .stat-value { color: #c0392b; }
-    .stat-sub { font-size: 11px; margin-top: 4px; color: #999; }
-    .up { color: #2e7d52; }
-    .down { color: #c0392b; }
-    .neutral { color: #999; }
-    .tabs { display: flex; margin: 16px 24px 0; background: #e8e6e0; border-radius: 12px; padding: 4px; }
-    .tab { flex: 1; padding: 9px 0; border-radius: 9px; border: none; cursor: pointer; font-size: 12px; background: transparent; color: #999; }
-    .tab.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .chart-wrap { padding: 16px 12px 0; display: none; }
-    .chart-wrap.visible { display: block; }
-    .chart-empty, .log-empty { text-align: center; padding: 36px 24px; color: #aaa; }
-    .chart-empty .icon { font-size: 36px; }
-    .log-wrap { padding: 14px 24px 0; display: none; }
-    .log-wrap.visible { display: block; }
-    .entry { background: #fff; border: 1px solid #e0ddd5; border-radius: 14px; padding: 13px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .entry-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .entry-left .date { font-size: 11px; color: #999; }
-    .entry-left .amount { font-family: 'Playfair Display', serif; font-size: 19px; margin-top: 3px; }
-    .entry-left .note { font-size: 11px; color: #aaa; margin-top: 4px; }
-    .entry-actions { display: flex; gap: 8px; }
-    .btn-edit, .btn-del, .btn-remove, .btn-sell, .btn-price, .btn-buy {
-      border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer; border: 1px solid transparent;
-    }
-    .btn-edit, .btn-price { background: #fff8e8; border-color: #e8d080; color: #b8860b; }
-    .btn-del, .btn-remove { background: #fdf0f0; border-color: #f0b8b8; color: #c0392b; }
-    .btn-sell { background: #edfaf4; border-color: #a8dfc4; color: #2e7d52; }
-    .btn-buy { background: #eef3fd; border-color: #aac0f0; color: #2c5fad; }
-    .section-title { font-size: 11px; color: #aaa; letter-spacing: 2px; text-transform: uppercase; padding: 16px 24px 8px; }
-    .holding-card { margin: 0 24px 10px; background: #fff; border: 1px solid #e0ddd5; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .holding-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .holding-ticker { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; }
-    .holding-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
-    .badge-tw { background: #edfaf4; color: #2e7d52; border: 1px solid #a8dfc4; }
-    .badge-us { background: #eef3fd; color: #2c5fad; border: 1px solid #aac0f0; }
-    .holding-name { font-size: 12px; color: #999; margin-top: 2px; }
-    .holding-shares, .holding-cost { font-size: 13px; color: #666; margin-top: 6px; }
-    .holding-right { text-align: right; }
-    .holding-value { font-family: 'Playfair Display', serif; font-size: 17px; }
-    .holding-pnl { font-size: 12px; margin-top: 3px; }
-    .holding-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0ede8; flex-wrap: wrap; }
-    .fab { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #c9a227, #a8841a); border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 26px; color: #fff; cursor: pointer; box-shadow: 0 6px 24px rgba(180,140,30,0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
-    .overlay.show { opacity: 1; pointer-events: all; }
-    .sheet { width: 100%; max-width: 480px; margin: 0 auto; background: #fff; border-radius: 24px 24px 0 0; border: 1px solid #e0ddd5; padding: 26px 24px 44px; transform: translateY(30px); transition: transform 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
-    .overlay.show .sheet { transform: translateY(0); }
-    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .sheet-title { font-family: 'Playfair Display', serif; font-size: 19px; }
-    .btn-close { background: #f0ede8; border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: pointer; font-size: 15px; }
-    .field-label { font-size: 11px; color: #999; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
-    .field-wrap { margin-bottom: 14px; }
-    .input-base { display: block; width: 100%; background: #f8f7f2; border: 1px solid #e0ddd5; border-radius: 12px; padding: 12px 16px; color: #1a1a1a; font-size: 15px; outline: none; }
-    .input-base:focus { border-color: #c9a227; }
-    .input-row { display: flex; gap: 10px; }
-    .input-row .field-wrap { flex: 1; }
-    .amount-wrap { position: relative; }
-    .currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #b8860b; font-size: 15px; pointer-events: none; }
-    .input-amount { padding-left: 34px; font-family: 'Playfair Display', serif; font-size: 20px; border-color: #e8d080; }
-    .btn-submit { width: 100%; padding: 15px; border-radius: 14px; border: none; background: linear-gradient(135deg, #c9a227, #a8841a); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
-    .seg { display: flex; background: #f0ede8; border-radius: 10px; padding: 3px; margin-bottom: 14px; }
-    .seg-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: #999; font-size: 13px; cursor: pointer; }
-    .seg-btn.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-    .confirm-overlay.show { opacity: 1; pointer-events: all; }
-    .confirm-box { background: #fff; border: 1px solid #f0b8b8; border-radius: 20px; padding: 26px 24px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-    .confirm-icon { font-size: 34px; }
-    .confirm-title { font-size: 16px; margin: 10px 0 5px; font-weight: 500; }
-    .confirm-sub { font-size: 13px; color: #999; margin-bottom: 22px; }
-    .confirm-btns { display: flex; gap: 10px; }
-    .btn-cancel { flex: 1; padding: 11px; border-radius: 12px; border: 1px solid #e0ddd5; background: #f8f7f2; color: #666; cursor: pointer; }
-    .btn-confirm-del { flex: 1; padding: 11px; border-radius: 12px; border: none; background: #e05c5c; color: #fff; cursor: pointer; font-weight: 600; }
-    .toast { position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%) translateY(10px); background: #1a1a1a; color: #fff; padding: 9px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 300; white-space: nowrap; opacity: 0; transition: all 0.25s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .fx-row { display: flex; align-items: center; gap: 10px; margin: 0 24px 14px; background: #eef3fd; border: 1px solid #aac0f0; border-radius: 12px; padding: 10px 14px; }
-    .fx-label { font-size: 12px; color: #2c5fad; flex: 1; }
-    .fx-input { background: transparent; border: none; border-bottom: 1px solid #aac0f0; color: #2c5fad; font-size: 14px; font-family: 'Playfair Display', serif; width: 70px; text-align: right; outline: none; padding: 2px 4px; }
-    .trade-note { font-size: 12px; color: #666; margin-top: 4px; }
-    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-  </style>
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+html, body {
+  background: #f5f5f0;
+  color: #1a1a1a;
+  font-family: 'DM Sans', 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 120px;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f5f5f0 0%, #eeede8 60%, #f0efe9 100%);
+}
+.main-nav { display: flex; background: #fff; border-bottom: 1px solid #e0ddd5; box-shadow: 0 1px 4px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 20; }
+.nav-btn { flex: 1; padding: 14px 0; border: none; background: transparent; color: #999; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+.nav-btn.active { color: #b8860b; border-bottom-color: #b8860b; }
+.header { padding: 32px 24px 0; }
+.header .eyebrow { color: #999; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+.header h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-top: 4px; }
+.stats { display: flex; gap: 12px; padding: 16px 24px 0; }
+.stat-card { flex: 1; border-radius: 16px; padding: 14px 16px; }
+.stat-card.primary { background: #fff8e8; border: 1px solid #e8d080; }
+.stat-card.secondary { background: #fff; border: 1px solid #e0ddd5; }
+.stat-card.success { background: #edfaf4; border: 1px solid #a8dfc4; }
+.stat-card.danger { background: #fdf0f0; border: 1px solid #f0b8b8; }
+.stat-label { font-size: 10px; color: #999; letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-value { font-family: 'Playfair Display', serif; font-size: 20px; color: #1a1a1a; margin-top: 6px; font-weight: 700; word-break: break-word; }
+.stat-card.success .stat-value { color: #2e7d52; }
+.stat-card.danger .stat-value { color: #c0392b; }
+.stat-sub { font-size: 11px; margin-top: 4px; color: #999; }
+.up { color: #2e7d52; }
+.down { color: #c0392b; }
+.neutral { color: #999; }
+.tabs { display: flex; margin: 16px 24px 0; background: #e8e6e0; border-radius: 12px; padding: 4px; }
+.tab { flex: 1; padding: 9px 0; border-radius: 9px; border: none; cursor: pointer; font-size: 12px; background: transparent; color: #999; }
+.tab.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.chart-wrap { padding: 16px 12px 0; display: none; }
+.chart-wrap.visible { display: block; }
+.chart-empty, .log-empty { text-align: center; padding: 36px 24px; color: #aaa; }
+.chart-empty .icon { font-size: 36px; }
+.log-wrap { padding: 14px 24px 0; display: none; }
+.log-wrap.visible { display: block; }
+.entry { background: #fff; border: 1px solid #e0ddd5; border-radius: 14px; padding: 13px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.entry-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.entry-left .date { font-size: 11px; color: #999; }
+.entry-left .amount { font-family: 'Playfair Display', serif; font-size: 19px; margin-top: 3px; }
+.entry-left .note { font-size: 11px; color: #aaa; margin-top: 4px; }
+.entry-actions { display: flex; gap: 8px; }
+.btn-edit, .btn-del, .btn-remove, .btn-sell, .btn-price, .btn-buy {
+  border-radius: 8px; padding: 7px 12px; font-size: 12px; cursor: pointer; border: 1px solid transparent;
+}
+.btn-edit, .btn-price { background: #fff8e8; border-color: #e8d080; color: #b8860b; }
+.btn-del, .btn-remove { background: #fdf0f0; border-color: #f0b8b8; color: #c0392b; }
+.btn-sell { background: #edfaf4; border-color: #a8dfc4; color: #2e7d52; }
+.btn-buy { background: #eef3fd; border-color: #aac0f0; color: #2c5fad; }
+.section-title { font-size: 11px; color: #aaa; letter-spacing: 2px; text-transform: uppercase; padding: 16px 24px 8px; }
+.holding-card { margin: 0 24px 10px; background: #fff; border: 1px solid #e0ddd5; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.holding-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.holding-ticker { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; }
+.holding-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
+.badge-tw { background: #edfaf4; color: #2e7d52; border: 1px solid #a8dfc4; }
+.badge-us { background: #eef3fd; color: #2c5fad; border: 1px solid #aac0f0; }
+.holding-name { font-size: 12px; color: #999; margin-top: 2px; }
+.holding-shares, .holding-cost { font-size: 13px; color: #666; margin-top: 6px; }
+.holding-right { text-align: right; }
+.holding-value { font-family: 'Playfair Display', serif; font-size: 17px; }
+.holding-pnl { font-size: 12px; margin-top: 3px; }
+.holding-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0ede8; flex-wrap: wrap; }
+.fab { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #c9a227, #a8841a); border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 26px; color: #fff; cursor: pointer; box-shadow: 0 6px 24px rgba(180,140,30,0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.overlay.show { opacity: 1; pointer-events: all; }
+.sheet { width: 100%; max-width: 480px; margin: 0 auto; background: #fff; border-radius: 24px 24px 0 0; border: 1px solid #e0ddd5; padding: 26px 24px 44px; transform: translateY(30px); transition: transform 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
+.overlay.show .sheet { transform: translateY(0); }
+.sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.sheet-title { font-family: 'Playfair Display', serif; font-size: 19px; }
+.btn-close { background: #f0ede8; border: none; border-radius: 50%; width: 32px; height: 32px; color: #666; cursor: pointer; font-size: 15px; }
+.field-label { font-size: 11px; color: #999; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.field-wrap { margin-bottom: 14px; }
+.input-base { display: block; width: 100%; background: #f8f7f2; border: 1px solid #e0ddd5; border-radius: 12px; padding: 12px 16px; color: #1a1a1a; font-size: 15px; outline: none; }
+.input-base:focus { border-color: #c9a227; }
+.input-row { display: flex; gap: 10px; }
+.input-row .field-wrap { flex: 1; }
+.amount-wrap { position: relative; }
+.currency-symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #b8860b; font-size: 15px; pointer-events: none; }
+.input-amount { padding-left: 34px; font-family: 'Playfair Display', serif; font-size: 20px; border-color: #e8d080; }
+.btn-submit { width: 100%; padding: 15px; border-radius: 14px; border: none; background: linear-gradient(135deg, #c9a227, #a8841a); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+.seg { display: flex; background: #f0ede8; border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+.seg-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: #999; font-size: 13px; cursor: pointer; }
+.seg-btn.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.confirm-overlay.show { opacity: 1; pointer-events: all; }
+.confirm-box { background: #fff; border: 1px solid #f0b8b8; border-radius: 20px; padding: 26px 24px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.confirm-icon { font-size: 34px; }
+.confirm-title { font-size: 16px; margin: 10px 0 5px; font-weight: 500; }
+.confirm-sub { font-size: 13px; color: #999; margin-bottom: 22px; }
+.confirm-btns { display: flex; gap: 10px; }
+.btn-cancel { flex: 1; padding: 11px; border-radius: 12px; border: 1px solid #e0ddd5; background: #f8f7f2; color: #666; cursor: pointer; }
+.btn-confirm-del { flex: 1; padding: 11px; border-radius: 12px; border: none; background: #e05c5c; color: #fff; cursor: pointer; font-weight: 600; }
+.toast { position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%) translateY(10px); background: #1a1a1a; color: #fff; padding: 9px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 300; white-space: nowrap; opacity: 0; transition: all 0.25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.fx-row { display: flex; align-items: center; gap: 10px; margin: 0 24px 14px; background: #eef3fd; border: 1px solid #aac0f0; border-radius: 12px; padding: 10px 14px; }
+.fx-label { font-size: 12px; color: #2c5fad; flex: 1; }
+.fx-input { background: transparent; border: none; border-bottom: 1px solid #aac0f0; color: #2c5fad; font-size: 14px; font-family: 'Playfair Display', serif; width: 70px; text-align: right; outline: none; padding: 2px 4px; }
+.trade-note { font-size: 12px; color: #666; margin-top: 4px; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+</style>
 </head>
 <body>
 <div class="app">
   <div class="main-nav">
-    <button class="nav-btn active" type="button" onclick="switchPage('wealth')">💰 總資產</button>
-    <button class="nav-btn" type="button" onclick="switchPage('stock')">📊 股票</button>
-    <button class="nav-btn" type="button" onclick="switchPage('trades')">📋 交易</button>
+    <button class="nav-btn active" onclick="switchPage('wealth')">💰 總資產</button>
+    <button class="nav-btn" onclick="switchPage('stock')">📊 股票</button>
+    <button class="nav-btn" onclick="switchPage('trades')">📋 交易</button>
   </div>
 
   <div id="wealthPage">
@@ -150,8 +146,8 @@
       </div>
     </div>
     <div class="tabs">
-      <button class="tab active" type="button" onclick="switchWTab('chart')">📈 走勢圖</button>
-      <button class="tab" type="button" onclick="switchWTab('log')">📋 紀錄</button>
+      <button class="tab active" onclick="switchWTab('chart')">📈 走勢圖</button>
+      <button class="tab" onclick="switchWTab('log')">📋 紀錄</button>
     </div>
     <div class="chart-wrap visible" id="wChartWrap">
       <div class="chart-empty" id="wChartEmpty" style="display:none"><div class="icon">📊</div><p>至少輸入 2 筆資料<br>才能顯示走勢圖</p></div>
@@ -188,8 +184,8 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" type="button" onclick="switchSTab('holdings')">🗂 持股</button>
-      <button class="tab" type="button" onclick="switchSTab('chart')">📈 市值圖</button>
+      <button class="tab active" onclick="switchSTab('holdings')">🗂 持股</button>
+      <button class="tab" onclick="switchSTab('chart')">📈 市值圖</button>
     </div>
 
     <div id="sHoldingsWrap" style="display:block">
@@ -229,13 +225,13 @@
   </div>
 </div>
 
-<button class="fab" id="fabBtn" type="button" onclick="onFab()">+</button>
+<button class="fab" id="fabBtn" onclick="onFab()">+</button>
 
 <div class="overlay" id="wFormOverlay" onclick="wOverlayClose(event)">
   <div class="sheet">
     <div class="sheet-header">
       <span class="sheet-title" id="wFormTitle">登錄資產</span>
-      <button class="btn-close" type="button" onclick="event.stopPropagation(); closeWForm()">✕</button>
+      <button class="btn-close" onclick="closeWForm()">✕</button>
     </div>
     <div class="field-wrap">
       <label class="field-label">日期</label>
@@ -249,7 +245,7 @@
       <label class="field-label">備註（選填）</label>
       <input type="text" id="wInputNote" class="input-base" placeholder="例如：加入定存 / 發薪" />
     </div>
-    <button class="btn-submit" type="button" onclick="submitWForm()">儲存紀錄</button>
+    <button class="btn-submit" onclick="submitWForm()">儲存紀錄</button>
   </div>
 </div>
 
@@ -257,10 +253,10 @@
   <div class="sheet">
     <div class="sheet-header">
       <span class="sheet-title">股票操作</span>
-      <button class="btn-close" type="button" onclick="event.stopPropagation(); closeSAction()">✕</button>
+      <button class="btn-close" onclick="closeSAction()">✕</button>
     </div>
-    <button class="btn-submit" type="button" style="margin-bottom:12px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="openBuyForm()">＋ 新增 / 買進股票</button>
-    <button class="btn-submit" type="button" style="background:#fff8e8;color:#b8860b;border:1px solid #e8d080;" onclick="openPriceForm()">📝 登錄收盤價</button>
+    <button class="btn-submit" style="margin-bottom:12px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="openBuyForm()">＋ 新增 / 買進股票</button>
+    <button class="btn-submit" style="background:#fff8e8;color:#b8860b;border:1px solid #e8d080;" onclick="openPriceForm()">📝 登錄收盤價</button>
   </div>
 </div>
 
@@ -268,13 +264,13 @@
   <div class="sheet">
     <div class="sheet-header">
       <span class="sheet-title">新增 / 買進股票</span>
-      <button class="btn-close" type="button" onclick="event.stopPropagation(); closeBuyForm()">✕</button>
+      <button class="btn-close" onclick="closeBuyForm()">✕</button>
     </div>
     <div class="field-wrap">
       <label class="field-label">市場</label>
       <div class="seg">
-        <button class="seg-btn active" type="button" id="segTW" onclick="selectMarket('TW')">🇹🇼 台股</button>
-        <button class="seg-btn" type="button" id="segUS" onclick="selectMarket('US')">🇺🇸 美股</button>
+        <button class="seg-btn active" id="segTW" onclick="selectMarket('TW')">🇹🇼 台股</button>
+        <button class="seg-btn" id="segUS" onclick="selectMarket('US')">🇺🇸 美股</button>
       </div>
     </div>
     <div class="input-row">
@@ -295,7 +291,7 @@
       <label class="field-label">買入均價（每股）</label>
       <input type="number" id="sInputCost" class="input-base" placeholder="0" />
     </div>
-    <button class="btn-submit" type="button" onclick="submitBuyForm()">儲存買進資料</button>
+    <button class="btn-submit" onclick="submitBuyForm()">儲存買進資料</button>
   </div>
 </div>
 
@@ -303,16 +299,16 @@
   <div class="sheet">
     <div class="sheet-header">
       <span class="sheet-title">登錄收盤價</span>
-      <button class="btn-close" type="button" onclick="event.stopPropagation(); closePrice()">✕</button>
+      <button class="btn-close" onclick="closePrice()">✕</button>
     </div>
     <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新台股收盤價資料。建議搭配 GitHub Actions 每日自動更新 data/twse_stock_day_all.json。</p>
-    <button id="autoFetchBtn" class="btn-submit" type="button" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
+    <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
     <div class="field-wrap">
       <label class="field-label">日期</label>
       <input type="date" id="sPriceDate" class="input-base" />
     </div>
     <div id="sPriceFields"></div>
-    <button class="btn-submit" type="button" onclick="submitPrices()">儲存價格</button>
+    <button class="btn-submit" onclick="submitPrices()">儲存價格</button>
   </div>
 </div>
 
@@ -320,7 +316,7 @@
   <div class="sheet">
     <div class="sheet-header">
       <span class="sheet-title" id="sSellTitle">賣出股票</span>
-      <button class="btn-close" type="button" onclick="event.stopPropagation(); closeSell()">✕</button>
+      <button class="btn-close" onclick="closeSell()">✕</button>
     </div>
     <p style="font-size:13px;color:#999;margin-bottom:16px;" id="sSellSubtitle"></p>
     <div class="field-wrap">
@@ -346,7 +342,7 @@
       <div id="sSellPnlText" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;"></div>
       <div id="sSellPnlPct" style="font-size:12px;margin-top:4px;color:#999;"></div>
     </div>
-    <button class="btn-submit" type="button" onclick="submitSell()">確認賣出</button>
+    <button class="btn-submit" onclick="submitSell()">確認賣出</button>
   </div>
 </div>
 
@@ -356,8 +352,8 @@
     <div class="confirm-title" id="confirmTitle">確認刪除？</div>
     <div class="confirm-sub">此操作無法復原</div>
     <div class="confirm-btns">
-      <button class="btn-cancel" type="button" onclick="closeConfirm()">取消</button>
-      <button class="btn-confirm-del" type="button" onclick="doConfirm()">刪除</button>
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn-confirm-del" onclick="doConfirm()">刪除</button>
     </div>
   </div>
 </div>
@@ -491,7 +487,7 @@ function renderWChart(sorted){
   const canvas=document.getElementById('wChart');
   const empty=document.getElementById('wChartEmpty');
   if(sorted.length<2){ canvas.style.display='none'; empty.style.display='block'; if(wChartInst) wChartInst.destroy(); return; }
-  canvas.style.display='block'; empty.style.display='none';
+  canvas.style.display='block'; empty.style.display='block'; empty.style.display='none';
   const labels=sorted.map(x=>fmtDate(x.date));
   const data=sorted.map(x=>x.amount);
   if(wChartInst) wChartInst.destroy();
@@ -516,8 +512,8 @@ function renderWLog(sorted){
           ${e.note ? `<div class="note">${e.note}</div>` : ''}
         </div>
         <div class="entry-actions">
-          <button class="btn-edit" type="button" onclick="openWFormById('${e.id}')">✏️</button>
-          <button class="btn-del" type="button" onclick="confirmDeleteW('${e.id}')">🗑</button>
+          <button class="btn-edit" onclick="openWFormById('${e.id}')">✏️</button>
+          <button class="btn-del" onclick="confirmDeleteW('${e.id}')">🗑</button>
         </div>
       </div>
     </div>`).join('');
@@ -578,7 +574,10 @@ function buildPriceFields(date){
 }
 
 async function fetchTwseClosingMap(){
-  const candidates = ['./data/twse_stock_day_all.json','data/twse_stock_day_all.json'];
+  const candidates = [
+    './data/twse_stock_day_all.json',
+    'data/twse_stock_day_all.json'
+  ];
 
   let data = null;
   for(const url of candidates){
@@ -636,7 +635,6 @@ async function autoFillLatestTWPrices(){
   }
 }
 document.addEventListener('change', function(e){ if(e.target && e.target.id==='sPriceDate') buildPriceFields(e.target.value); });
-
 function submitPrices(){
   const date = document.getElementById('sPriceDate').value;
   if(!date) return showToast('請選擇日期');
@@ -725,10 +723,10 @@ function renderHoldings(){
           </div>
         </div>
         <div class="holding-actions">
-          <button class="btn-price" type="button" onclick="openPriceForm()">📝 登錄價格</button>
-          <button class="btn-buy" type="button" onclick="prefillBuy('${h.id}')">＋ 加碼</button>
-          <button class="btn-sell" type="button" onclick="openSellForm('${h.id}')">💰 賣出</button>
-          <button class="btn-remove" type="button" onclick="confirmDeleteHolding('${h.id}')">🗑</button>
+          <button class="btn-price" onclick="openPriceForm()">📝 登錄價格</button>
+          <button class="btn-buy" onclick="prefillBuy('${h.id}')">＋ 加碼</button>
+          <button class="btn-sell" onclick="openSellForm('${h.id}')">💰 賣出</button>
+          <button class="btn-remove" onclick="confirmDeleteHolding('${h.id}')">🗑</button>
         </div>
       </div>`;
   }).join('');
@@ -837,7 +835,7 @@ function renderTrades(){
           </div>
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-          <button class="btn-del" type="button" onclick="confirmDeleteTrade('${t.id}')">🗑 刪除</button>
+          <button class="btn-del" onclick="confirmDeleteTrade('${t.id}')">🗑 刪除</button>
         </div>
       </div>`;
   }).join('');
