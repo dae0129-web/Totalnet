@@ -575,10 +575,140 @@ function buildPriceFields(date){
 
 async function fetchAllTWPrices() {
   const sources = [
-    './data/twse_stock_day_all.json',
-    './data/tpex_otc_day_all.json',
-    './data/tpex_esb_day_all.json'
+    './data/twse_stock_day_all.json', // 上市
+    './data/tpex_otc_day_all.json',   // 上櫃
+    './data/tpex_esb_day_all.json'    // 興櫃
   ];
+
+  function normalizeTicker(value) {
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, '')
+      .toUpperCase();
+  }
+
+  function parseNumber(value) {
+    if (value == null) return NaN;
+    const cleaned = String(value)
+      .replace(/,/g, '')
+      .replace(/\s+/g, '')
+      .replace(/--|—|−/g, '')
+      .trim();
+    if (!cleaned) return NaN;
+    return parseFloat(cleaned);
+  }
+
+  function getRows(json) {
+    if (Array.isArray(json)) return json;
+    if (json && Array.isArray(json.data)) return json.data;
+    if (json && Array.isArray(json.rows)) return json.rows;
+    if (json && Array.isArray(json.result)) return json.result;
+    if (json && json.result && Array.isArray(json.result.data)) return json.result.data;
+    if (json && Array.isArray(json.aaData)) return json.aaData;
+    return [];
+  }
+
+  function extractCode(row) {
+    const codeKeys = [
+      'Code',
+      'code',
+      '證券代號',
+      '股票代號',
+      '代號',
+      'SecuritiesCompanyCode',
+      '股票名稱代號',
+      '公司代號',
+      '有價證券代號'
+    ];
+
+    for (const key of codeKeys) {
+      if (row[key] != null && String(row[key]).trim() !== '') {
+        return normalizeTicker(row[key]);
+      }
+    }
+
+    for (const key of Object.keys(row)) {
+      if (/代號|Code|code/i.test(key)) {
+        const v = normalizeTicker(row[key]);
+        if (v) return v;
+      }
+    }
+
+    return '';
+  }
+
+  function extractPrice(row) {
+    const priceKeys = [
+      'ClosingPrice',     // 上市/上櫃常見
+      'Close',
+      'close',
+      '收盤價',
+      'LatestPrice',      // 興櫃
+      '最新成交價',
+      'Average',          // 興櫃可備援
+      '成交均價',
+      '均價',
+      '價格',
+      'LastPrice',
+      'lastPrice',
+      '成交價'
+    ];
+
+    for (const key of priceKeys) {
+      if (row[key] != null && String(row[key]).trim() !== '') {
+        const n = parseNumber(row[key]);
+        if (!isNaN(n) && n > 0) return n;
+      }
+    }
+
+    for (const key of Object.keys(row)) {
+      if (/收盤|成交|均價|價格|close|price|latest|average/i.test(key)) {
+        const n = parseNumber(row[key]);
+        if (!isNaN(n) && n > 0) return n;
+      }
+    }
+
+    return NaN;
+  }
+
+  const map = {};
+
+  for (const url of sources) {
+    try {
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (!res.ok) {
+        console.warn('讀取失敗:', url, res.status);
+        continue;
+      }
+
+      const json = await res.json();
+      const rows = getRows(json);
+
+      console.log('資料來源:', url, '筆數:', rows.length, '範例:', rows[0]);
+
+      for (const row of rows) {
+        if (!row || typeof row !== 'object') continue;
+
+        const code = extractCode(row);
+        const price = extractPrice(row);
+
+        if (code && !isNaN(price) && price > 0) {
+          map[code] = price;
+        }
+      }
+    } catch (err) {
+      console.warn('讀取失敗:', url, err);
+    }
+  }
+
+  console.log('台股價格總筆數:', Object.keys(map).length);
+
+  if (!Object.keys(map).length) {
+    throw new Error('找不到任何台股資料，請確認 JSON 檔案格式與路徑是否正確');
+  }
+
+  return map;
+};
 
   let allData = [];
 
