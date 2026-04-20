@@ -487,7 +487,7 @@ function renderWChart(sorted){
   const canvas=document.getElementById('wChart');
   const empty=document.getElementById('wChartEmpty');
   if(sorted.length<2){ canvas.style.display='none'; empty.style.display='block'; if(wChartInst) wChartInst.destroy(); return; }
-  canvas.style.display='block'; empty.style.display='block'; empty.style.display='none';
+  canvas.style.display='block'; empty.style.display='none';
   const labels=sorted.map(x=>fmtDate(x.date));
   const data=sorted.map(x=>x.amount);
   if(wChartInst) wChartInst.destroy();
@@ -575,9 +575,9 @@ function buildPriceFields(date){
 
 async function fetchAllTWPrices() {
   const sources = [
-    './data/twse_stock_day_all.json', // 上市
-    './data/tpex_otc_day_all.json',   // 上櫃
-    './data/tpex_esb_day_all.json'    // 興櫃
+    './data/twse_stock_day_all.json',
+    './data/tpex_otc_day_all.json',
+    './data/tpex_esb_day_all.json'
   ];
 
   function normalizeTicker(value) {
@@ -639,13 +639,13 @@ async function fetchAllTWPrices() {
 
   function extractPrice(row) {
     const priceKeys = [
-      'ClosingPrice',     // 上市/上櫃常見
+      'ClosingPrice',
       'Close',
       'close',
       '收盤價',
-      'LatestPrice',      // 興櫃
+      'LatestPrice',
       '最新成交價',
-      'Average',          // 興櫃可備援
+      'Average',
       '成交均價',
       '均價',
       '價格',
@@ -708,57 +708,6 @@ async function fetchAllTWPrices() {
   }
 
   return map;
-};
-
-  let allData = [];
-
-  for (const url of sources) {
-    try {
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          allData = allData.concat(data);
-        }
-      } else {
-        console.warn('讀取失敗:', url, res.status);
-      }
-    } catch (err) {
-      console.warn('讀取失敗:', url, err);
-    }
-  }
-
-  if (!allData.length) {
-    throw new Error('找不到任何台股資料，請確認 data 目錄下三個 JSON 是否存在');
-  }
-
-  const map = {};
-
-  allData.forEach(row => {
-    const code = String(
-      row.Code ||
-      row['證券代號'] ||
-      row['SecuritiesCompanyCode'] ||
-      row['股票代號'] ||
-      ''
-    ).trim();
-
-    const closeRaw =
-      row.ClosingPrice ||
-      row['收盤價'] ||
-      row.Close ||
-      row['成交均價'] ||
-      row['最新成交價'] ||
-      '';
-
-    const close = parseFloat(String(closeRaw).replace(/,/g, '').trim());
-
-    if (code && !isNaN(close)) {
-      map[code] = close;
-    }
-  });
-
-  return map;
 }
 
 async function autoFillLatestTWPrices(){
@@ -777,7 +726,9 @@ async function autoFillLatestTWPrices(){
       const h = holdings.find(x => x.id === hid);
       if(!h || h.market !== 'TW') return;
 
-      const price = priceMap[h.ticker];
+      const ticker = String(h.ticker || '').trim().toUpperCase().replace(/\s+/g, '');
+      const price = priceMap[ticker];
+
       if(price != null){
         el.value = price;
         matched++;
