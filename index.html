@@ -301,7 +301,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
       <span class="sheet-title">登錄收盤價</span>
       <button class="btn-close" onclick="closePrice()">✕</button>
     </div>
-    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新台股收盤價資料。建議搭配 GitHub Actions 每日自動更新 data/twse_stock_day_all.json。</p>
+    <p style="font-size:13px;color:#999;margin-bottom:12px;line-height:1.6;">可手動輸入價格，或按下方按鈕自動帶入 repo 內的最新台股收盤價資料。支援上市 / 上櫃 / 興櫃，建議每日自動更新 data/twse_stock_day_all.json、data/tpex_otc_day_all.json、data/tpex_esb_day_all.json。</p>
     <button id="autoFetchBtn" class="btn-submit" style="margin-bottom:14px;background:linear-gradient(135deg,#2c5fad,#224a86);" onclick="autoFillLatestTWPrices()">⚡ 自動抓台股最新收盤價</button>
     <div class="field-wrap">
       <label class="field-label">日期</label>
@@ -573,34 +573,61 @@ function buildPriceFields(date){
     </div>`).join('');
 }
 
-async function fetchTwseClosingMap(){
-  const candidates = [
+async function fetchAllTWPrices() {
+  const sources = [
     './data/twse_stock_day_all.json',
-    'data/twse_stock_day_all.json'
+    './data/tpex_otc_day_all.json',
+    './data/tpex_esb_day_all.json'
   ];
 
-  let data = null;
-  for(const url of candidates){
+  let allData = [];
+
+  for (const url of sources) {
     try {
       const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if(res.ok){
-        data = await res.json();
-        break;
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          allData = allData.concat(data);
+        }
+      } else {
+        console.warn('讀取失敗:', url, res.status);
       }
-    } catch(err) {
-      console.warn('讀取本地台股資料失敗:', url, err);
+    } catch (err) {
+      console.warn('讀取失敗:', url, err);
     }
   }
 
-  if(!Array.isArray(data)) throw new Error('找不到本地台股收盤價資料，請確認 data/twse_stock_day_all.json 是否存在');
+  if (!allData.length) {
+    throw new Error('找不到任何台股資料，請確認 data 目錄下三個 JSON 是否存在');
+  }
 
   const map = {};
-  data.forEach(row => {
-    const code = String(row.Code || row['證券代號'] || '').trim();
-    const closeRaw = row.ClosingPrice || row['收盤價'] || row.Close || '';
-    const close = parseFloat(String(closeRaw).replace(/,/g, ''));
-    if(code && !isNaN(close)) map[code] = close;
+
+  allData.forEach(row => {
+    const code = String(
+      row.Code ||
+      row['證券代號'] ||
+      row['SecuritiesCompanyCode'] ||
+      row['股票代號'] ||
+      ''
+    ).trim();
+
+    const closeRaw =
+      row.ClosingPrice ||
+      row['收盤價'] ||
+      row.Close ||
+      row['成交均價'] ||
+      row['最新成交價'] ||
+      '';
+
+    const close = parseFloat(String(closeRaw).replace(/,/g, '').trim());
+
+    if (code && !isNaN(close)) {
+      map[code] = close;
+    }
   });
+
   return map;
 }
 
@@ -611,29 +638,32 @@ async function autoFillLatestTWPrices(){
   const btn = document.getElementById('autoFetchBtn');
   try {
     if(btn){ btn.disabled = true; btn.textContent = '抓取中...'; }
-    const twseMap = await fetchTwseClosingMap();
+
+    const priceMap = await fetchAllTWPrices();
     let matched = 0;
 
     document.querySelectorAll('.price-field').forEach(el => {
       const hid = el.dataset.hid;
       const h = holdings.find(x => x.id === hid);
       if(!h || h.market !== 'TW') return;
-      const price = twseMap[h.ticker];
+
+      const price = priceMap[h.ticker];
       if(price != null){
         el.value = price;
         matched++;
       }
     });
 
-    if(matched === 0) showToast('查無可帶入的上市台股收盤價');
+    if(matched === 0) showToast('查無可帶入的台股價格（上市/上櫃/興櫃）');
     else showToast('已自動帶入 ' + matched + ' 檔台股價格');
   } catch(err) {
     console.error(err);
-    showToast('自動抓價失敗，請改手動輸入');
+    showToast('自動抓價失敗，請確認 JSON 檔案存在');
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = '⚡ 自動抓台股最新收盤價'; }
   }
 }
+
 document.addEventListener('change', function(e){ if(e.target && e.target.id==='sPriceDate') buildPriceFields(e.target.value); });
 function submitPrices(){
   const date = document.getElementById('sPriceDate').value;
